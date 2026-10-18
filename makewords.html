@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>MakeTopicWords</title>
+<style>
+  :root{
+    --ink:#E9E4D4; --bg:#0E141B; --panel:#16202B;
+    --tile:#EFE6CF; --tileink:#1E2836; --gold:#F2B441; --coral:#E4593B;
+    --dim:rgba(233,228,212,.55);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg)}
+  body{font-family:ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;color:var(--ink)}
+  canvas{display:block;touch-action:none}
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;align-items:baseline;gap:1.4em;
+       padding:13px 18px;pointer-events:none;font-size:13px;letter-spacing:.04em;z-index:5}
+  #hud .mark{font-family:Georgia,serif;font-style:italic;font-size:17px}
+  #hud .stat{color:var(--dim)} #hud .stat b{color:var(--ink);font-weight:600}
+  #pad{position:fixed;bottom:0;left:0;right:0;display:none;justify-content:center;gap:8px;
+       padding:10px 8px 14px;z-index:5}
+  #pad button{background:rgba(22,32,43,.85);border:1px solid rgba(233,228,212,.3);color:var(--ink);
+       font-size:20px;width:56px;height:48px;border-radius:6px;cursor:pointer}
+  #pad button:active{background:var(--panel)}
+  @media (pointer:coarse){ #pad{display:flex} }
+  #overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+       background:rgba(14,20,27,.72);z-index:10}
+  #overlay.show{display:flex}
+  .card{background:var(--bg);border:1px solid rgba(233,228,212,.28);padding:26px 30px;
+       text-align:center;max-width:430px;max-height:92vh;overflow-y:auto;margin:0 12px}
+  .card h1{font-family:Georgia,serif;font-style:italic;font-weight:400;font-size:32px;margin:0 0 8px}
+  .card p{color:var(--dim);font-size:14px;line-height:1.55;margin:6px 0 20px}
+  .card .nums{font-size:14px;color:var(--dim);margin-bottom:20px}
+  .card .nums b{color:var(--gold);font-weight:600}
+  .card button{background:none;border:1px solid var(--ink);color:var(--ink);font:inherit;
+       font-size:14px;letter-spacing:.06em;padding:9px 28px;cursor:pointer;border-radius:3px;
+       margin:0 6px}
+  .card select{background:var(--bg);border:1px solid var(--ink);color:var(--ink);
+       font:inherit;font-size:14px;padding:9px 14px;border-radius:3px;min-width:280px;
+       cursor:pointer}
+  .card button:hover{background:var(--ink);color:var(--bg)}
+  .keys{font-size:12.5px;color:var(--dim);margin-top:16px;line-height:1.8}
+  .keys b{color:var(--ink);font-weight:600;border:1px solid rgba(233,228,212,.3);
+       border-radius:3px;padding:1px 6px;font-family:ui-monospace,monospace;font-size:11px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <span class="mark">MakeTopicWords</span>
+  <span class="stat">Score <b id="h-score">0</b></span>
+  <span class="stat">Best <b id="h-best">0</b></span>
+  <span class="stat">List <b id="h-words">0/15</b></span>
+</div>
+<div id="pad">
+  <button data-act="left">&#9664;</button>
+  <button data-act="up">&#9650;</button>
+  <button data-act="down">&#9660;</button>
+  <button data-act="right">&#9654;</button>
+  <button data-act="rotate">&#8635;</button>
+  <button data-act="play">&#8629;</button>
+</div>
+<div id="overlay"><div class="card" id="card"></div></div>
+<input type="file" id="topic-file" accept=".json,application/json" hidden>
+
+<script>
+"use strict";
+
+/* ---------- topic ---------- */
+/* The words to hunt come from a topic: a JSON file holding an array of
+   words and acronyms with very short definitions, all from one field.
+   The starter topic ships inside this file; the title card's button
+   loads any other topic file. */
+const SHIPPED_TOPICS = [
+  { name: "Software engineering", words: [
+    {w:"API",  d:"application programming interface"},
+    {w:"BUG",  d:"defect in the code"},
+    {w:"CLI",  d:"command-line interface"},
+    {w:"DOM",  d:"document object model"},
+    {w:"EOF",  d:"end of file"},
+    {w:"FORK", d:"split a repo or a process"},
+    {w:"GIT",  d:"version control"},
+    {w:"HEAP", d:"dynamic memory pool"},
+    {w:"INT",  d:"integer type"},
+    {w:"LINT", d:"flag shaky code"},
+    {w:"LOOP", d:"run it again and again"},
+    {w:"NULL", d:"nothing, on purpose"},
+    {w:"PIPE", d:"chain commands together"},
+    {w:"PUSH", d:"send commits to the remote"},
+    {w:"UX",   d:"user experience"},
+  ]},
+  { name: "Music theory", words: [
+    {w:"ARIA", d:"opera solo song"},
+    {w:"BAR",  d:"one measure of time"},
+    {w:"BASS", d:"the lowest part"},
+    {w:"BEAT", d:"the basic pulse"},
+    {w:"BPM",  d:"beats per minute"},
+    {w:"CLEF", d:"symbol that fixes the lines' pitches"},
+    {w:"CODA", d:"the closing passage"},
+    {w:"DUET", d:"two playing together"},
+    {w:"FLAT", d:"a half step down"},
+    {w:"KEY",  d:"the tonal home of a piece"},
+    {w:"MODE", d:"a scale's flavor, like dorian"},
+    {w:"REED", d:"sliver that buzzes in a woodwind"},
+    {w:"RIFF", d:"a repeated figure you remember"},
+    {w:"SLUR", d:"play the notes connected"},
+    {w:"VAMP", d:"repeated intro, until the singer comes"},
+  ]},
+  { name: "Mexican Spanish", words: [
+    {w:"AGUA", d:"water"},
+    {w:"APA",  d:"dad (slang)"},
+    {w:"CASA", d:"house, home"},
+    {w:"ESE",  d:"that; also a pal (slang)"},
+    {w:"HOLA", d:"hello"},
+    {w:"JEFA", d:"the boss; mom (slang)"},
+    {w:"MAS",  d:"more"},
+    {w:"MERO", d:"the very one; mero mero: top boss"},
+    {w:"NETA", d:"the truth; for real (slang)"},
+    {w:"ORA",  d:"right now, hurry up (slang)"},
+    {w:"OYE",  d:"hey, listen"},
+    {w:"PA",   d:"for; said fast for para"},
+    {w:"PUES", d:"well, so; the spoken filler"},
+    {w:"SALE", d:"okay, deal (slang)"},
+    {w:"WEY",  d:"dude, pal (slang)"},
+  ]},
+  { name: "Environmentalism", words: [
+    {w:"CFC",  d:"ozone-harming refrigerant"},
+    {w:"COAL", d:"dirtiest fossil fuel"},
+    {w:"DAM",  d:"barrier that makes hydropower"},
+    {w:"ECO",  d:"green, ecological"},
+    {w:"EPA",  d:"environmental protection agency"},
+    {w:"GAS",  d:"fossil fuel, or a state of matter"},
+    {w:"GRID", d:"network that moves electricity"},
+    {w:"IPCC", d:"climate science panel"},
+    {w:"LOAM", d:"rich, crumbly soil"},
+    {w:"OIL",  d:"fossil fuel from wells"},
+    {w:"PEAT", d:"bog soil that holds carbon"},
+    {w:"PPM",  d:"parts per million, CO2 measure"},
+    {w:"REEF", d:"coral ecosystem in warm seas"},
+    {w:"SMOG", d:"polluted city air"},
+    {w:"WIND", d:"clean power from moving air"},
+  ]},
+  { name: "California housing & planning", words: [
+    {w:"ADU",  d:"accessory dwelling unit"},
+    {w:"ADA",  d:"disability access rules"},
+    {w:"CEQA", d:"state environmental review law"},
+    {w:"EIR",  d:"environmental impact report"},
+    {w:"HUD",  d:"federal housing agency"},
+    {w:"LEED", d:"green building rating"},
+    {w:"LOT",  d:"parcel of land"},
+    {w:"HCD",  d:"state housing department"},
+    {w:"RHNA", d:"regional housing needs quota"},
+    {w:"SRO",  d:"single room occupancy hotel"},
+  ]},
+];
+let topic = SHIPPED_TOPICS[0];
+
+// parse a topic file's text: an array of {w,d} objects, [w,d] pairs, or
+// bare strings. Returns true and deals a new game when it takes.
+function loadTopicText(text){
+  try{
+    const arr = JSON.parse(text);
+    if(!Array.isArray(arr)) return false;
+    const seen = new Set(), words = [];
+    for(const item of arr){
+      let w, d="";
+      if(typeof item === "string") w = item;
+      else if(item && typeof item === "object"){
+        w = item.w ?? item.word;
+        d = String(item.d ?? item.def ?? item.definition ?? "");
+      } else continue;
+      w = String(w).trim().toUpperCase();
+      if(w.length<2 || seen.has(w)) continue;
+      seen.add(w);
+      words.push({w, d: d.trim()});
+    }
+    if(words.length < 3) return false;
+    words.sort((a,b)=> a.w < b.w ? -1 : 1);
+    topic = { words };
+    reset();
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ---------- board & letter bar ---------- */
+const COLS = 8, ROWS = 13;
+const SHAPES = [
+  {cells:[[0,0],[1,0],[2,0]], w:3}, // three in a line
+  {cells:[[0,0],[1,0]],       w:4}, // two in a line
+  {cells:[[0,0]],             w:2}, // single
+];
+// vowel-heavy base letter bag (Q dropped: it strands without U)
+const BASE_BAG = ("EEEEEEEEEEEAAAAAAAAAAIIIIIIIIIIOOOOOOOOOUUUUUU"
+ .concat("NNNNNNRRRRRRTTTTTTLLLLSSSSDDDDGGBBCCMMPPFFHHVVWWYYKJXZ")).toLowerCase().split("");
+let BAG = BASE_BAG.slice();
+const TILE_PTS = {a:1,b:3,c:3,d:2,e:1,f:4,g:2,h:4,i:1,j:8,k:5,l:1,m:3,n:1,o:1,p:3,
+  q:10,r:1,s:1,t:1,u:1,v:4,w:4,x:8,y:4,z:10};
+// one seeded random stream for everything that affects play. Append a word
+// to the url after # ( #clown ) and every game there deals the same letters.
+let seed = 0;
+{
+  let word = "";
+  try{
+    const raw = decodeURIComponent(
+      (typeof location !== "undefined" && location.hash) || ""
+    ).replace(/^#/, "");
+    if(raw.includes("#")){
+      // the address already carried a route; the seed is what follows the last #
+      word = raw.split("#").pop().trim();
+    } else if(!raw.startsWith("/")){
+      word = raw.trim(); // plain "#clown"
+    }
+    // a lone "#/something" is the app's own route, not a seed: stay random
+  }catch(e){ word = ""; }
+  if(word){
+    let h = 2166136261; // FNV-1a
+    for(let i=0;i<word.length;i++){ h ^= word.charCodeAt(i); h = Math.imul(h, 16777619); }
+    seed = h>>>0;
+  } else seed = (Date.now()>>>0) || 1;
+}
+function rng(){ // mulberry32
+  seed = (seed + 0x6D2B79F5)|0;
+  let t = seed;
+  t = Math.imul(t ^ t>>>15, t|1);
+  t ^= t + Math.imul(t ^ t>>>7, t|61);
+  return ((t ^ t>>>14)>>>0)/4294967296;
+}
+const rand = a => a[Math.floor(rng()*a.length)];
+
+function newPiece(){
+  const shape = rand(SHAPES);
+  return {
+    cells: shape.cells.map(([x,y])=>({x,y,ch:rand(BAG)})),
+    px: 2, py: 8,
+  };
+}
+function rotated(p){ // rotate cells 90deg clockwise, re-normalize to 0
+  const maxX = Math.max(...p.cells.map(c=>c.x));
+  const cells = p.cells.map(c=>({x:c.y, y:maxX-c.x, ch:c.ch}));
+  const minX = Math.min(...cells.map(c=>c.x)), minY = Math.min(...cells.map(c=>c.y));
+  return cells.map(c=>({x:c.x-minX, y:c.y-minY, ch:c.ch}));
+}
+function extent(cells){
+  return {w:Math.max(...cells.map(c=>c.x))+1, h:Math.max(...cells.map(c=>c.y))+1};
+}
+// every cell of the bar lands on an empty board square (needed to play it)
+function fits(cells, px, py){
+  return cells.every(c=>{
+    const x=px+c.x, y=py+c.y;
+    return x>=0 && x<COLS && y>=0 && y<ROWS && grid[y][x]===null;
+  });
+}
+// the bar floats above the tiles, so moving and turning only respect the rim
+function boundsOk(cells, px, py){
+  return cells.every(c=>{
+    const x=px+c.x, y=py+c.y;
+    return x>=0 && x<COLS && y>=0 && y<ROWS;
+  });
+}
+function existsPlacement(cells){
+  const {w,h}=extent(cells);
+  for(let y=0;y<=ROWS-h;y++)for(let x=0;x<=COLS-w;x++)
+    if(grid[y][x]===null && fits(cells,x,y)) return true;
+  return false;
+}
+// set the bar down at the empty spot nearest the middle of the board
+function placePiece(p){
+  const {w,h}=extent(p.cells);
+  const cx=(COLS-w)/2, cy=(ROWS-h)/2;
+  let best=null, bestD=Infinity;
+  for(let y=0;y<=ROWS-h;y++)for(let x=0;x<=COLS-w;x++){
+    if(grid[y][x]!==null || !fits(p.cells,x,y)) continue;
+    const d=(x-cx)*(x-cx)+(y-cy)*(y-cy);
+    if(d<bestD){ bestD=d; best=[x,y]; }
+  }
+  if(best){ p.px=best[0]; p.py=best[1]; }
+  return !!best;
+}
+
+/* ---------- state ---------- */
+let grid, piece, nextPiece, score, best=0, over, paused, started=false;
+let floats=[], parts=[], flashCells=[], flashT=0, denyT=0, trips=[], pings=[];
+let targets=[], targetSet=new Set(), matched=new Set(), goalDone=false; // per-game goal: every word on the topic list
+let defOf=new Map(), maxScan=4; // definitions beside the list; longest word the scanner chases
+
+function reset(){
+  grid = Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  piece = newPiece(); nextPiece = newPiece();
+  placePiece(piece);
+  score=0; over=false; paused=false;
+  floats=[]; parts=[]; flashCells=[]; flashT=0; denyT=0; trips=[]; pings=[];
+  pickTargets(); matched = new Set(); goalDone = false; hud();
+}
+function hud(){
+  document.getElementById("h-score").textContent = score;
+  document.getElementById("h-best").textContent = best;
+  document.getElementById("h-words").textContent = matched.size+"/"+targets.length;
+}
+// the topic's words to hunt this game, shown beside the board. Every
+// listed word deals its letters into the bag, so the topic is close
+// at hand: "TLS" on the list puts a T, an L and an S in the mix.
+function pickTargets(){
+  targets = topic.words.map(t=>t.w);
+  targetSet = new Set(targets);
+  defOf = new Map(topic.words.map(t=>[t.w, t.d]));
+  maxScan = Math.max(2, ...targets.map(w=>w.length), 2);
+  BAG = BASE_BAG.slice();
+  for(const w of targets) for(const ch of w.toLowerCase()) BAG.push(ch);
+}
+function checkGoal(){
+  if(goalDone || !targets.length || over) return;
+  if(targets.every(w=>matched.has(w))){
+    goalDone = true;
+    paused = true;
+    sfx.clear(5);
+    const card=document.getElementById("card");
+    document.getElementById("overlay").classList.add("show");
+    card.innerHTML = `<h1>All ${targets.length} made</h1>
+      <p>Every word on the list has been made. The board is yours
+         for as long as you want it.</p>
+      <div class="nums">Score <b>${score}</b> &nbsp;&middot;&nbsp; best ${best}</div>
+      <button id="btn-keep">Keep playing</button>
+      <button id="btn-new">New game</button>`;
+    document.getElementById("btn-keep").onclick = ()=>{ paused=false; overlay.classList.remove("show"); };
+    document.getElementById("btn-new").onclick = ()=>{ overlay.classList.remove("show"); reset(); };
+  }
+}
+
+/* ---------- audio ---------- */
+let AC=null, soundOn=true;
+function tone(f0,f1,dur,type,vol,when){
+  if(!soundOn||!AC) return;
+  const t=AC.currentTime+(when||0), o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t);
+  if(f1) o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur+.02);
+}
+const sfx = {
+  move(){ tone(340,null,.04,"square",.05); },
+  rotate(){ tone(420,520,.06,"triangle",.07); },
+  lock(){ tone(140,90,.09,"square",.09); },
+  clear(n){ for(let i=0;i<Math.min(n,5);i++) tone(440+i*110, null, .13, "sine", .1, i*.06); },
+  deny(){ tone(220,160,.12,"square",.08); },
+  over(){ tone(300,90,.7,"sine",.12); },
+};
+
+/* ---------- word finding ---------- */
+const hasLetter = (x,y)=> grid[y][x] && grid[y][x].ch;
+function scanWords(){
+  const found = [], seen = new Set();
+  // read every line of letters in all eight directions: across, down,
+  // and both diagonals, each line read both ways
+  const DIRS = [[1,0],[0,1],[-1,0],[0,-1],[1,-1],[1,1],[-1,-1],[-1,1]];
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    if(!hasLetter(x,y)) continue;
+    for(const [dx,dy] of DIRS){
+      let word = "";
+      const cells = [];
+      for(let i=0;i<maxScan;i++){
+        const nx=x+dx*i, ny=y+dy*i;
+        if(nx<0||nx>=COLS||ny<0||ny>=ROWS||!hasLetter(nx,ny)) break;
+        // the bag deals lowercase; the list is held uppercase
+        word += grid[ny][nx].ch.toUpperCase();
+        cells.push([nx,ny]);
+        if(word.length<2) continue;
+        // the same squares spelling the same word read both ways is one
+        // word, not two; different words on one run of squares both count
+        const sig = word+"|"+cells.map(([a,b])=>b*COLS+a).sort((a,b)=>a-b).join(",");
+        if(!seen.has(sig)){ seen.add(sig); found.push({word, cells:cells.slice()}); }
+      }
+    }
+  }
+  return found;
+}
+
+/* ---------- resolving a play ---------- */
+/* Only the words on this game's list clear. Everything else a placement
+   happens to spell stays on the board as raw letters. A made word's tiles
+   turn green and keep their letters, but no bar can come down on them
+   again, so the board fills as the list gets made. */
+function resolvePlays(){
+  const found = scanWords().filter(f=>targetSet.has(f.word) && !matched.has(f.word));
+  if(!found.length) return;
+  let pts = 0;
+  const cleared = [];
+  for(const f of found){
+    const gain = 10 * f.word.length * f.word.length;
+    pts += gain;
+    const cx = f.cells.reduce((s,c)=>s+c[0],0)/f.cells.length;
+    const cy = f.cells.reduce((s,c)=>s+c[1],0)/f.cells.length;
+    floats.push({x:cx, y:cy, text:f.word, sub:"+"+gain, life:1.4, color:"#F2B441"});
+    matched.add(f.word);
+    for(const [gx,gy] of f.cells){
+      cleared.push([gx,gy]);
+      for(let i=0;i<4;i++) parts.push({x:gx,y:gy,
+        vx:(Math.random()-.5)*5, vy:-Math.random()*6-1, life:.9,
+        c: i===0?"#F2B441":"#EFE6CF", r:1.4+Math.random()*1.6});
+    }
+  }
+  score += pts;
+  sfx.clear(found[0].word.length);
+  for(const [x,y] of cleared) grid[y][x].done = true; // green, and it stays
+  flashCells = cleared;
+  flashT = .35;
+  for(const f of found){
+    const mx = f.cells.reduce((a,c)=>a+c[0],0)/f.cells.length;
+    const my = f.cells.reduce((a,c)=>a+c[1],0)/f.cells.length;
+    trips.push({x:mx, y:my, t:0, dur:3.2});
+  }
+  hud();
+  checkGoal();
+}
+
+/* ---------- actions ---------- */
+function tryMove(dx,dy){
+  if(boundsOk(piece.cells, piece.px+dx, piece.py+dy)){
+    piece.px+=dx; piece.py+=dy; return true;
+  }
+  return false;
+}
+function tryRotate(){
+  const cells = rotated(piece);
+  for(const [kx,ky] of [[0,0],[-1,0],[1,0],[-2,0],[2,0],[0,-1],[0,1]]){
+    if(boundsOk(cells, piece.px+kx, piece.py+ky)){
+      piece.cells=cells; piece.px+=kx; piece.py+=ky; sfx.rotate(); return;
+    }
+  }
+}
+function playBar(){
+  // the bar can hover anywhere, but it can only come down on blank squares
+  if(!fits(piece.cells, piece.px, piece.py)){ denyT=.3; sfx.deny(); return; }
+  for(const c of piece.cells) grid[piece.py+c.y][piece.px+c.x]={ch:c.ch};
+  pings.push({
+    x: piece.cells.reduce((a,c)=>a+c.x,0)/piece.cells.length + piece.px,
+    y: piece.cells.reduce((a,c)=>a+c.y,0)/piece.cells.length + piece.py,
+    t:0, dur:.5
+  });
+  sfx.lock();
+  resolvePlays();
+  if(over) return;
+  piece = nextPiece; nextPiece = newPiece();
+  if(!existsPlacement(piece.cells)){
+    const r = rotated(piece);
+    if(!existsPlacement(r)){ gameOver(); return; }
+    piece.cells = r;
+  }
+  placePiece(piece);
+}
+function gameOver(){
+  over=true; sfx.over();
+  if(score>best) best=score;
+  hud();
+  const card=document.getElementById("card");
+  document.getElementById("overlay").classList.add("show");
+  const line = matched.size
+    ? `You made ${matched.size} of the ${targets.length}, and no empty run of squares
+       is left to set the letters down.`
+    : `No word made it off the list, and no empty run of squares
+       is left to set the letters down.`;
+  card.innerHTML = `<h1>Board's full</h1><p>${line}</p>
+    <div class="nums">Score <b>${score}</b> &nbsp;&middot;&nbsp; best ${best} &nbsp;&middot;&nbsp; list ${matched.size}/${targets.length}</div>
+    <button id="btn-again">Play again</button>
+    <button id="btn-look">Look at the board</button>`;
+  document.getElementById("btn-again").onclick = ()=>{ overlay.classList.remove("show"); reset(); };
+  document.getElementById("btn-look").onclick = ()=> overlay.classList.remove("show");
+}
+
+/* ---------- input ---------- */
+const overlay=document.getElementById("overlay");
+function act(a){
+  if(!started||over||paused) return;
+  if(a==="left"){ tryMove(-1,0)&&sfx.move(); }
+  else if(a==="right"){ tryMove(1,0)&&sfx.move(); }
+  else if(a==="up"){ tryMove(0,-1)&&sfx.move(); }
+  else if(a==="down"){ tryMove(0,1)&&sfx.move(); }
+  else if(a==="rotate") tryRotate();
+  else if(a==="play") playBar();
+}
+addEventListener("keydown", e=>{
+  if(!started) return;
+  if(e.key==="p"||e.key==="P"){ togglePause(); return; }
+  if(over||paused) return;
+  if(e.key==="ArrowLeft"){ e.preventDefault(); act("left"); }
+  else if(e.key==="ArrowRight"){ e.preventDefault(); act("right"); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); act("up"); }
+  else if(e.key==="ArrowDown"){ e.preventDefault(); act("down"); }
+  else if(e.key==="x"||e.key==="X"||e.key==="z"||e.key==="Z"){ e.preventDefault(); act("rotate"); }
+  else if(e.key===" "){ e.preventDefault(); act("play"); }
+});
+document.querySelectorAll("#pad button").forEach(b=>{
+  b.addEventListener("pointerdown", e=>{ e.preventDefault(); act(b.dataset.act); });
+});
+function togglePause(){
+  if(over) return;
+  paused=!paused;
+  if(paused){
+    document.getElementById("card").innerHTML =
+      `<h1>Paused</h1><p>Take your time. The letters will wait.</p>
+       <button id="btn-res">Resume</button>`;
+    document.getElementById("btn-res").onclick = togglePause;
+    overlay.classList.add("show");
+  } else overlay.classList.remove("show");
+}
+
+/* ---------- canvas / view ---------- */
+const cv=document.getElementById("c"), ctx=cv.getContext("2d");
+let view={ts:30,bx:0,by:0,pw:0,ph:0};
+function resize(){
+  const dpr=window.devicePixelRatio||1;
+  cv.width=innerWidth*dpr; cv.height=innerHeight*dpr;
+  cv.style.width=innerWidth+"px"; cv.style.height=innerHeight+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const padTB = innerHeight < 640 ? 84 : 60, padLR = innerWidth < 700 ? 10 : 24;
+  const previewW = innerWidth < 700 ? Math.min(120, innerWidth*.3) : 185;
+  view.pw=innerWidth; view.ph=innerHeight;
+  const availW = innerWidth - padLR*2 - previewW;
+  const availH = innerHeight - padTB*2;
+  // the gap between board and list rides on the tile size too
+  view.ts = Math.max(12, Math.min(availW/(COLS+1.2), availH/ROWS));
+  view.bx = (innerWidth - previewW - COLS*view.ts - view.ts*1.2)/2;
+  view.by = (innerHeight - ROWS*view.ts)/2;
+}
+addEventListener("resize", resize); resize();
+
+/* ---------- render ---------- */
+function tile(x,y,t,alpha){
+  const ts=view.ts, px=view.bx+x*ts, py=view.by+y*ts, pad=ts*.06;
+  const o = (typeof t==="string") ? {ch:t} : t;
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle = o.done ? "#6FA374" : "#EFE6CF"; // made words settle in green
+  ctx.beginPath();
+  const r=ts*.14, x0=px+pad, y0=py+pad, w=ts-pad*2, h=ts-pad*2;
+  ctx.moveTo(x0+r,y0); ctx.arcTo(x0+w,y0,x0+w,y0+h,r); ctx.arcTo(x0+w,y0+h,x0,y0+h,r);
+  ctx.arcTo(x0,y0+h,x0,y0,r); ctx.arcTo(x0,y0,x0+w,y0,r); ctx.closePath(); ctx.fill();
+  // letter
+  ctx.fillStyle = o.done ? "#12211A" : "#1E2836";
+  ctx.font=`700 ${ts*.52}px Georgia, serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(o.ch.toUpperCase(), x0+w/2, y0+h/2+ts*.02);
+  // point value
+  ctx.fillStyle = o.done ? "#2E4436" : "#8A8168";
+  ctx.font=`${Math.max(7,ts*.18)}px ui-sans-serif,system-ui,sans-serif`;
+  ctx.textAlign="right"; ctx.textBaseline="alphabetic";
+  ctx.fillText(TILE_PTS[o.ch]||1, x0+w-2, y0+h-2);
+  ctx.globalAlpha=1;
+}
+function render(dt){
+  ctx.fillStyle="#0E141B"; ctx.fillRect(0,0,view.pw,view.ph);
+  const ts=view.ts;
+
+  // board panel + grid
+  ctx.fillStyle="#16202B";
+  ctx.fillRect(view.bx-4, view.by-4, COLS*ts+8, ROWS*ts+8);
+  ctx.strokeStyle="rgba(233,228,212,.12)"; ctx.lineWidth=1;
+  for(let x=1;x<COLS;x++){ ctx.beginPath(); ctx.moveTo(view.bx+x*ts,view.by); ctx.lineTo(view.bx+x*ts,view.by+ROWS*ts); ctx.stroke(); }
+  for(let y=1;y<ROWS;y++){ ctx.beginPath(); ctx.moveTo(view.bx,view.by+y*ts); ctx.lineTo(view.bx+COLS*ts,view.by+y*ts); ctx.stroke(); }
+  ctx.strokeStyle="rgba(233,228,212,.25)";
+  ctx.strokeRect(view.bx-4,view.by-4,COLS*ts+8,ROWS*ts+8);
+
+  // settled tiles
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++)
+    if(grid[y][x]!==null) tile(x, y, grid[y][x], 1);
+
+  // flash cells that just cleared
+  if(flashT>0){
+    flashT-=dt;
+    ctx.globalAlpha=Math.max(0,flashT/.35)*.6;
+    ctx.fillStyle="#F2B441";
+    for(const [x,y] of flashCells) ctx.fillRect(view.bx+x*ts+1,view.by+y*ts+1,ts-2,ts-2);
+    ctx.globalAlpha=1;
+    if(flashT<=0) flashCells=[];
+  }
+
+  // the letter bar, floating above the tiles
+  if(!over&&started){
+    const xs=piece.cells.map(c=>c.x), ys=piece.cells.map(c=>c.y);
+    const x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+    const bx0=view.bx+(piece.px+x0)*ts, by0=view.by+(piece.py+y0)*ts;
+    const bw=(x1-x0+1)*ts, bh=(y1-y0+1)*ts;
+    // drop shadow: the bar hovers a little above the board
+    ctx.fillStyle="rgba(8,12,17,.45)";
+    ctx.beginPath();
+    const sx0=bx0+ts*.12, sy0=by0+ts*.2, sw=bw-ts*.2, sh=bh-ts*.2;
+    ctx.moveTo(sx0+ts*.14,sy0); ctx.arcTo(sx0+sw,sy0,sx0+sw,sy0+sh,ts*.18);
+    ctx.arcTo(sx0+sw,sy0+sh,sx0,sy0+sh,ts*.18); ctx.arcTo(sx0,sy0+sh,sx0,sy0,ts*.18);
+    ctx.arcTo(sx0,sy0,sx0+sw,sy0,ts*.18); ctx.closePath(); ctx.fill();
+    for(const c of piece.cells) tile(piece.px+c.x, piece.py+c.y, {ch:c.ch}, 1);
+    // ring shows whether the bar can come down here: gold yes, coral no
+    const canPlay = fits(piece.cells, piece.px, piece.py);
+    ctx.strokeStyle = canPlay ? "rgba(242,180,65,.8)" : "rgba(228,89,59,.8)";
+    ctx.lineWidth=1.6;
+    ctx.strokeRect(bx0+1, by0+1, bw-2, bh-2);
+    if(denyT>0){
+      denyT-=dt;
+      ctx.globalAlpha=Math.max(0,denyT/.3);
+      ctx.strokeStyle="#E4593B"; ctx.lineWidth=2.5;
+      ctx.strokeRect(bx0-1, by0-1, bw+2, bh+2);
+      ctx.globalAlpha=1;
+    }
+  }
+
+  // particles
+  for(const p of parts){
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.fillStyle=p.c;
+    ctx.beginPath(); ctx.arc(view.bx+(p.x+.5)*ts, view.by+(p.y+.5)*ts, p.r*ts/30, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // placement ping: a yellow ripple running the wrong way, inward
+  for(const pg of pings){
+    const k = pg.t/pg.dur;
+    const cx = view.bx+(pg.x+.5)*ts, cy = view.by+(pg.y+.5)*ts;
+    for(let ring=0; ring<3; ring++){
+      const rp = k*1.2 - ring*.12;
+      if(rp<0 || rp>1) continue;
+      const rad = (1-rp)*ts*4.2;
+      ctx.globalAlpha = (1-k)*.55;
+      ctx.lineWidth = ts*.12*(1-k)+1;
+      ctx.strokeStyle = "#F5D547";
+      ctx.beginPath(); ctx.arc(cx, cy, Math.max(1,rad), 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.globalAlpha = (1-k)*.18;
+    ctx.fillStyle = "#F5D547";
+    ctx.beginPath(); ctx.arc(cx, cy, ts*.9, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // match bloom: wavy rings and slow color tides in green, gold and orange
+  const tripCols = ["#6FA374","#F2B441","#E4593B"];
+  for(const tr of trips){
+    const k = tr.t/tr.dur;
+    const cx = view.bx+(tr.x+.5)*ts, cy = view.by+(tr.y+.5)*ts;
+    for(let ring=0; ring<7; ring++){
+      const rp = k*1.6 - ring*.09;
+      if(rp<=0 || rp>=1) continue;
+      const rad = (.25+rp*7)*ts;
+      ctx.globalAlpha = (1-rp)*.7;
+      ctx.lineWidth = ts*.14*(1-rp)+1;
+      ctx.strokeStyle = tripCols[(ring+Math.floor(tr.t*2))%3];
+      ctx.beginPath();
+      const lobes = ring%2 ? 3 : 5;
+      for(let a=0;a<=64;a++){
+        const ang = a/64*Math.PI*2;
+        const rr = rad*(1+.13*Math.sin(ang*lobes + tr.t*7 + ring*1.3));
+        const px = cx+Math.cos(ang)*rr, py = cy+Math.sin(ang)*rr;
+        a===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+    // three soft tides washing outward, their colors slowly trading places
+    for(let wv=0; wv<3; wv++){
+      const wp = k*1.3 - wv*.18;
+      if(wp<=0 || wp>=1) continue;
+      ctx.globalAlpha = (1-wp)*.15;
+      ctx.fillStyle = tripCols[(wv+Math.floor(tr.t*1.5))%3];
+      ctx.beginPath(); ctx.arc(cx, cy, wp*ts*11, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+
+  // floating words
+  ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+  for(const f of floats){
+    const a=Math.min(1,f.life);
+    ctx.globalAlpha=a;
+    ctx.fillStyle=f.color;
+    ctx.font=`italic 700 ${ts*.6}px Georgia, serif`;
+    ctx.fillText(f.text.toUpperCase(), view.bx+f.x*ts, view.by+f.y*ts - (1.4-f.life)*ts*1.5);
+    ctx.fillStyle="rgba(233,228,212,.7)";
+    ctx.font=`${ts*.32}px ui-sans-serif,system-ui,sans-serif`;
+    ctx.fillText(f.sub, view.bx+f.x*ts, view.by+f.y*ts - (1.4-f.life)*ts*1.5 + ts*.5);
+  }
+  ctx.globalAlpha=1;
+
+  // the topic's words to hunt this game, one column with definitions
+  if(started){
+    const lx=view.bx+COLS*ts+ts*1.2;
+    ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillStyle="rgba(233,228,212,.55)";
+    ctx.font="11px ui-sans-serif,system-ui,sans-serif";
+    let ly=view.by+ts*3.4;
+    ctx.fillText("TOPIC LIST", lx, ly);
+    ctx.fillStyle = goalDone ? "#F2B441" : "rgba(233,228,212,.85)";
+    ctx.font="600 11px ui-sans-serif,system-ui,sans-serif";
+    ctx.fillText(matched.size+"/"+targets.length, lx+ts*2.6, ly);
+    ly += ts*.8;
+    const rowH = Math.min(Math.max(13, ts*.62), (ROWS*ts - ts*4.2)/Math.max(1,targets.length));
+    const maxX = view.bx + view.pw - 10;
+    for(let i=0;i<targets.length;i++){
+      const wy = ly + i*rowH;
+      const got = matched.has(targets[i]);
+      // made words darken into the panel; the rest stay cream
+      ctx.fillStyle = got ? "#414D5C" : "#E9E4D4";
+      ctx.globalAlpha = got ? 1 : .9;
+      ctx.font=`italic ${Math.max(9,ts*.36)}px Georgia, serif`;
+      ctx.fillText(targets[i], lx, wy);
+      // a few words of what it means, dim, kept inside the panel
+      const def = view.pw >= 560 ? defOf.get(targets[i]) : null;
+      if(def){
+        ctx.fillStyle = got ? "#33404E" : "rgba(233,228,212,.42)";
+        ctx.font=`${Math.max(8,ts*.26)}px ui-sans-serif,system-ui,sans-serif`;
+        let d = def;
+        const dx = lx + ts*2.1;
+        while(d && ctx.measureText(d).width + dx > maxX) d = d.slice(0,-1);
+        ctx.fillText(d, dx, wy);
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // next preview
+  if(started&&!over){
+    const nx=view.bx+COLS*ts+ts*1.2, ny=view.by+ts*.5;
+    ctx.fillStyle="rgba(233,228,212,.55)";
+    ctx.font="11px ui-sans-serif,system-ui,sans-serif";
+    ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    ctx.fillText("NEXT", nx, ny+8);
+    const minX=Math.min(...nextPiece.cells.map(c=>c.x));
+    const minY=Math.min(...nextPiece.cells.map(c=>c.y));
+    const ts2=ts*.8;
+    for(const c of nextPiece.cells){
+      const px=nx+(c.x-minX)*ts2, py=ny+20+(c.y-minY)*ts2;
+      ctx.fillStyle="#EFE6CF"; ctx.fillRect(px,py,ts2-2,ts2-2);
+      ctx.fillStyle="#1E2836";
+      ctx.font=`700 ${ts2*.5}px Georgia, serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(c.ch.toUpperCase(), px+ts2/2-1, py+ts2/2);
+    }
+  }
+}
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function frame(t){
+  const dt=Math.min(.05,(t-last)/1000); last=t;
+  for(const p of parts){ p.life-=dt*1.2; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=14*dt; }
+  parts=parts.filter(p=>p.life>0);
+  for(const f of floats) f.life-=dt;
+  floats=floats.filter(f=>f.life>0);
+  for(const tr of trips) tr.t+=dt;
+  trips=trips.filter(tr=>tr.t<tr.dur);
+  for(const pg of pings) pg.t+=dt;
+  pings=pings.filter(pg=>pg.t<pg.dur);
+  render(dt);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- start ---------- */
+function startGame(){
+  AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+  started=true; overlay.classList.remove("show"); reset();
+}
+(function showTitle(){
+  document.getElementById("card").innerHTML =
+    `<h1>MakeTopicWords</h1>
+     <p>Make every word on the list, read in any direction. Made words turn
+        green and stay. Bars float: move them anywhere, set them down on
+        blanks only.</p>
+     <div class="keys"><b>&larr;</b><b>&uarr;</b><b>&darr;</b><b>&rarr;</b> move &nbsp;
+        <b>x</b> turn &nbsp; <b>space</b> play &nbsp; <b>P</b> pause</div>
+     <p class="keys">Your own list: a JSON file, like
+        <b>[{"w":"API","d":"what it is"}]</b>. Same deal every visit:
+        add <b>&hellip;#clown</b> to the address.</p>
+     <p class="keys" style="margin:14px 0 6px">Topic:</p>
+     <select id="topic-select"></select>
+     <button id="btn-play" style="margin-top:12px">Play</button>
+     <button id="btn-topic">Load a topic file&hellip;</button>`;
+  const sel = document.getElementById("topic-select");
+  SHIPPED_TOPICS.forEach((t,i)=>{
+    const o = document.createElement("option");
+    o.value = String(i); o.textContent = t.name;
+    sel.appendChild(o);
+  });
+  document.getElementById("btn-play").onclick = ()=>{
+    topic = SHIPPED_TOPICS[parseInt(sel.value,10) || 0];
+    startGame();
+  };
+  document.getElementById("btn-topic").onclick = () => document.getElementById("topic-file").click();
+  overlay.classList.add("show");
+})();
+document.getElementById("topic-file").addEventListener("change", ev => {
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    if(loadTopicText(String(reader.result))) startGame();
+    else {
+      const p = document.createElement("p");
+      p.className = "keys"; p.style.color = "#E4593B";
+      p.textContent = "That file did not read as a topic: an array of words and definitions, at least three of them.";
+      document.getElementById("card").appendChild(p);
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+});
+reset(); // so the board renders behind the title
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
