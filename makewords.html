@@ -279,14 +279,14 @@ function placePiece(p){
 }
 
 /* ---------- state ---------- */
-let grid, piece, nextPiece, score, best=0, over, paused, started=false;
+let grid, piece, nextPiece, nextPiece2, score, best=0, over, paused, started=false;
 let floats=[], parts=[], flashCells=[], flashT=0, denyT=0, trips=[], pings=[];
 let targets=[], targetSet=new Set(), matched=new Set(), goalDone=false; // per-game goal: every word on the topic list
 let defOf=new Map(), maxScan=4; // definitions beside the list; longest word the scanner chases
 
 function reset(){
   grid = Array.from({length:ROWS},()=>Array(COLS).fill(null));
-  piece = newPiece(); nextPiece = newPiece();
+  piece = newPiece(); nextPiece = newPiece(); nextPiece2 = newPiece();
   placePiece(piece);
   score=0; over=false; paused=false;
   floats=[]; parts=[]; flashCells=[]; flashT=0; denyT=0; trips=[]; pings=[];
@@ -440,7 +440,7 @@ function playBar(){
   sfx.lock();
   resolvePlays();
   if(over) return;
-  piece = nextPiece; nextPiece = newPiece();
+  piece = nextPiece; nextPiece = nextPiece2; nextPiece2 = newPiece();
   if(!existsPlacement(piece.cells)){
     const r = rotated(piece);
     if(!existsPlacement(r)){ gameOver(); return; }
@@ -718,17 +718,23 @@ function render(dt){
     ctx.font="11px ui-sans-serif,system-ui,sans-serif";
     ctx.textAlign="left"; ctx.textBaseline="alphabetic";
     ctx.fillText("NEXT", nx, ny+8);
-    const minX=Math.min(...nextPiece.cells.map(c=>c.x));
-    const minY=Math.min(...nextPiece.cells.map(c=>c.y));
-    const ts2=ts*.8;
-    for(const c of nextPiece.cells){
-      const px=nx+(c.x-minX)*ts2, py=ny+20+(c.y-minY)*ts2;
-      ctx.fillStyle="#EFE6CF"; ctx.fillRect(px,py,ts2-2,ts2-2);
-      ctx.fillStyle="#1E2836";
-      ctx.font=`700 ${ts2*.5}px Georgia, serif`;
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText(c.ch.toUpperCase(), px+ts2/2-1, py+ts2/2);
-    }
+    const drawBar = (bar, ox, oy, dim)=>{
+      const minX=Math.min(...bar.cells.map(c=>c.x));
+      const minY=Math.min(...bar.cells.map(c=>c.y));
+      const ts2=ts*.8;
+      for(const c of bar.cells){
+        const px=nx+ox+(c.x-minX)*ts2, py=ny+oy+(c.y-minY)*ts2;
+        ctx.globalAlpha = dim ? .55 : 1;
+        ctx.fillStyle="#EFE6CF"; ctx.fillRect(px,py,ts2-2,ts2-2);
+        ctx.fillStyle="#1E2836";
+        ctx.font=`700 ${ts2*.5}px Georgia, serif`;
+        ctx.textAlign="center"; ctx.textBaseline="middle";
+        ctx.fillText(c.ch.toUpperCase(), px+ts2/2-1, py+ts2/2);
+        ctx.globalAlpha=1;
+      }
+    };
+    drawBar(nextPiece, 0, 20, false);
+    drawBar(nextPiece2, 0, 20+ts*1.4, true);
   }
 }
 
@@ -766,6 +772,15 @@ function startGame(){
         add <b>&hellip;#clown</b> to the address.</p>
      <p class="keys" style="margin:14px 0 6px">Topic:</p>
      <select id="topic-select"></select>
+     <p class="keys" style="margin:10px 0 6px">Deal:</p>
+     <select id="seed-select">
+       <option value="">random</option>
+       <option value="maize">maize</option>
+       <option value="caraway">caraway</option>
+       <option value="chia">chia</option>
+       <option value="cannabis">cannabis</option>
+       <option value="sunflower">sunflower</option>
+     </select>
      <button id="btn-play" style="margin-top:12px">Play</button>
      <button id="btn-topic">Load a topic file&hellip;</button>`;
   const sel = document.getElementById("topic-select");
@@ -774,8 +789,26 @@ function startGame(){
     o.value = String(i); o.textContent = t.name;
     sel.appendChild(o);
   });
+  const selSeed = document.getElementById("seed-select");
+  try{ // a seed word in the address shows as the pick, and the deal matches it
+    const hw = decodeURIComponent(location.hash || "").replace(/^#/, "").split("#").pop().trim();
+    if(hw && !hw.startsWith("/")) selSeed.value = hw;
+  }catch(e){}
   document.getElementById("btn-play").onclick = ()=>{
     topic = SHIPPED_TOPICS[parseInt(sel.value,10) || 0];
+    let w = selSeed.value;
+    if(!w){ // no pick: fall back to the seed word already in the address
+      try{
+        w = decodeURIComponent(location.hash || "").replace(/^#/, "").split("#").pop().trim();
+        if(w.startsWith("/")) w = ""; // the app's own route, not a seed
+      }catch(e){ w = ""; }
+    }
+    if(w){ // the named deal: put the word in the address and reseed now,
+      try{ history.replaceState(null,"","#"+w); }catch(e){} // fresh, so the
+      let h = 2166136261;                                   // deal matches
+      for(let i=0;i<w.length;i++){ h ^= w.charCodeAt(i); h = Math.imul(h, 16777619); }
+      seed = h>>>0 || 1;
+    }
     startGame();
   };
   document.getElementById("btn-topic").onclick = () => document.getElementById("topic-file").click();
