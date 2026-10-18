@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Software engineering",
+    "file": "software-engineering.json"
+  },
+  {
+    "name": "Music theory",
+    "file": "music-theory.json"
+  },
+  {
+    "name": "Mexican Spanish",
+    "file": "mexican-spanish.json"
+  },
+  {
+    "name": "Environmentalism",
+    "file": "environmentalism.json"
+  },
+  {
+    "name": "California housing & planning",
+    "file": "california-housing-and-planning.json"
+  },
+  {
+    "name": "Board games",
+    "file": "board-games.json"
+  },
+  {
+    "name": "Card games & poker",
+    "file": "card-games.json"
+  },
+  {
+    "name": "Cooking & kitchen",
+    "file": "cooking-kitchen.json"
+  },
+  {
+    "name": "Wine, beer & coffee",
+    "file": "wine-beer-coffee.json"
+  },
+  {
+    "name": "Birds & birding",
+    "file": "birds-birding.json"
+  },
+  {
+    "name": "Fishing & angling",
+    "file": "fishing-angling.json"
+  },
+  {
+    "name": "Chemistry & elements",
+    "file": "elements-chemistry.json"
+  },
+  {
+    "name": "Astronomy & space",
+    "file": "astronomy-space.json"
+  },
+  {
+    "name": "Mythology",
+    "file": "mythology.json"
+  },
+  {
+    "name": "Latin & legal terms",
+    "file": "latin-legal.json"
+  },
+  {
+    "name": "Geography & capitals",
+    "file": "geography-cities.json"
+  },
+  {
+    "name": "Music genres & instruments",
+    "file": "music-genres.json"
+  },
+  {
+    "name": "Body & anatomy",
+    "file": "body-anatomy.json"
+  },
+  {
+    "name": "Sailing & nautical",
+    "file": "sailing-nautical.json"
+  },
+  {
+    "name": "Scrabble oddballs",
+    "file": "scrabble-oddballs.json"
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "w": "DIE",
+    "d": "one cube of chance"
+  },
+  {
+    "w": "DICE",
+    "d": "a pair of chances"
+  },
+  {
+    "w": "RISK",
+    "d": "the classic conquest game"
+  },
+  {
+    "w": "TILE",
+    "d": "one square piece"
+  },
+  {
+    "w": "PAWN",
+    "d": "the humble piece"
+  },
+  {
+    "w": "TURN",
+    "d": "one player's go"
+  },
+  {
+    "w": "CUBE",
+    "d": "square block"
+  },
+  {
+    "w": "CHIT",
+    "d": "a small counter or token"
+  },
+  {
+    "w": "OUIJA",
+    "d": "the talking board"
+  },
+  {
+    "w": "TOKEN",
+    "d": "the piece you move"
+  },
+  {
+    "w": "CARDS",
+    "d": "the deck you deal"
+  },
+  {
+    "w": "BINGO",
+    "d": "five in a row, you call it"
+  },
+  {
+    "w": "GUESS",
+    "d": "try without knowing"
+  }
+]

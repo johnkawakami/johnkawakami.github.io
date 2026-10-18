@@ -1,0 +1,62 @@
+[
+  {
+    "w": "CFC",
+    "d": "ozone-harming refrigerant"
+  },
+  {
+    "w": "COAL",
+    "d": "dirtiest fossil fuel"
+  },
+  {
+    "w": "DAM",
+    "d": "barrier that makes hydropower"
+  },
+  {
+    "w": "ECO",
+    "d": "green, ecological"
+  },
+  {
+    "w": "EPA",
+    "d": "environmental protection agency"
+  },
+  {
+    "w": "GAS",
+    "d": "fossil fuel, or a state of matter"
+  },
+  {
+    "w": "GRID",
+    "d": "network that moves electricity"
+  },
+  {
+    "w": "IPCC",
+    "d": "climate science panel"
+  },
+  {
+    "w": "LOAM",
+    "d": "rich, crumbly soil"
+  },
+  {
+    "w": "OIL",
+    "d": "fossil fuel from wells"
+  },
+  {
+    "w": "PEAT",
+    "d": "bog soil that holds carbon"
+  },
+  {
+    "w": "PPM",
+    "d": "parts per million, CO2 measure"
+  },
+  {
+    "w": "REEF",
+    "d": "coral ecosystem in warm seas"
+  },
+  {
+    "w": "SMOG",
+    "d": "polluted city air"
+  },
+  {
+    "w": "WIND",
+    "d": "clean power from moving air"
+  }
+]

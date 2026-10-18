@@ -1,0 +1,42 @@
+[
+  {
+    "w": "ADU",
+    "d": "accessory dwelling unit"
+  },
+  {
+    "w": "ADA",
+    "d": "disability access rules"
+  },
+  {
+    "w": "CEQA",
+    "d": "state environmental review law"
+  },
+  {
+    "w": "EIR",
+    "d": "environmental impact report"
+  },
+  {
+    "w": "HUD",
+    "d": "federal housing agency"
+  },
+  {
+    "w": "LEED",
+    "d": "green building rating"
+  },
+  {
+    "w": "LOT",
+    "d": "parcel of land"
+  },
+  {
+    "w": "HCD",
+    "d": "state housing department"
+  },
+  {
+    "w": "RHNA",
+    "d": "regional housing needs quota"
+  },
+  {
+    "w": "SRO",
+    "d": "single room occupancy hotel"
+  }
+]

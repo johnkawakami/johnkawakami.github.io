@@ -1,0 +1,62 @@
+[
+  {
+    "w": "ALE",
+    "d": "top-fermented beer"
+  },
+  {
+    "w": "IPA",
+    "d": "hoppy pale ale"
+  },
+  {
+    "w": "BREW",
+    "d": "what you make and drink"
+  },
+  {
+    "w": "VINO",
+    "d": "wine, in Italian"
+  },
+  {
+    "w": "CORK",
+    "d": "the bottle's stopper"
+  },
+  {
+    "w": "LEES",
+    "d": "the sediment in the bottle"
+  },
+  {
+    "w": "MALT",
+    "d": "germinated brewing grain"
+  },
+  {
+    "w": "DRIP",
+    "d": "the everyday coffee method"
+  },
+  {
+    "w": "BRUT",
+    "d": "very dry champagne"
+  },
+  {
+    "w": "HOPS",
+    "d": "the flower that bitters beer"
+  },
+  {
+    "w": "LAGER",
+    "d": "cold-fermented beer"
+  },
+  {
+    "w": "CREMA",
+    "d": "the foam on good espresso"
+  },
+  {
+    "w": "ROAST",
+    "d": "the heat that makes coffee"
+  },
+  {
+    "w": "YEAST",
+    "d": "the microbe that ferments"
+  },
+  {
+    "w": "STOUT",
+    "d": "dark, heavy beer"
+  }
+]

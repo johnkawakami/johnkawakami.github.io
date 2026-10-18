@@ -72,89 +72,49 @@
    words and acronyms with very short definitions, all from one field.
    The starter topic ships inside this file; the title card's button
    loads any other topic file. */
-const SHIPPED_TOPICS = [
-  { name: "Software engineering", words: [
-    {w:"API",  d:"application programming interface"},
-    {w:"BUG",  d:"defect in the code"},
-    {w:"CLI",  d:"command-line interface"},
-    {w:"DOM",  d:"document object model"},
-    {w:"EOF",  d:"end of file"},
-    {w:"FORK", d:"split a repo or a process"},
-    {w:"GIT",  d:"version control"},
-    {w:"HEAP", d:"dynamic memory pool"},
-    {w:"INT",  d:"integer type"},
-    {w:"LINT", d:"flag shaky code"},
-    {w:"LOOP", d:"run it again and again"},
-    {w:"NULL", d:"nothing, on purpose"},
-    {w:"PIPE", d:"chain commands together"},
-    {w:"PUSH", d:"send commits to the remote"},
-    {w:"UX",   d:"user experience"},
-  ]},
-  { name: "Music theory", words: [
-    {w:"ARIA", d:"opera solo song"},
-    {w:"BAR",  d:"one measure of time"},
-    {w:"BASS", d:"the lowest part"},
-    {w:"BEAT", d:"the basic pulse"},
-    {w:"BPM",  d:"beats per minute"},
-    {w:"CLEF", d:"symbol that fixes the lines' pitches"},
-    {w:"CODA", d:"the closing passage"},
-    {w:"DUET", d:"two playing together"},
-    {w:"FLAT", d:"a half step down"},
-    {w:"KEY",  d:"the tonal home of a piece"},
-    {w:"MODE", d:"a scale's flavor, like dorian"},
-    {w:"REED", d:"sliver that buzzes in a woodwind"},
-    {w:"RIFF", d:"a repeated figure you remember"},
-    {w:"SLUR", d:"play the notes connected"},
-    {w:"VAMP", d:"repeated intro, until the singer comes"},
-  ]},
-  { name: "Mexican Spanish", words: [
-    {w:"AGUA", d:"water"},
-    {w:"APA",  d:"dad (slang)"},
-    {w:"CASA", d:"house, home"},
-    {w:"ESE",  d:"that; also a pal (slang)"},
-    {w:"HOLA", d:"hello"},
-    {w:"JEFA", d:"the boss; mom (slang)"},
-    {w:"MAS",  d:"more"},
-    {w:"MERO", d:"the very one; mero mero: top boss"},
-    {w:"NETA", d:"the truth; for real (slang)"},
-    {w:"ORA",  d:"right now, hurry up (slang)"},
-    {w:"OYE",  d:"hey, listen"},
-    {w:"PA",   d:"for; said fast for para"},
-    {w:"PUES", d:"well, so; the spoken filler"},
-    {w:"SALE", d:"okay, deal (slang)"},
-    {w:"WEY",  d:"dude, pal (slang)"},
-  ]},
-  { name: "Environmentalism", words: [
-    {w:"CFC",  d:"ozone-harming refrigerant"},
-    {w:"COAL", d:"dirtiest fossil fuel"},
-    {w:"DAM",  d:"barrier that makes hydropower"},
-    {w:"ECO",  d:"green, ecological"},
-    {w:"EPA",  d:"environmental protection agency"},
-    {w:"GAS",  d:"fossil fuel, or a state of matter"},
-    {w:"GRID", d:"network that moves electricity"},
-    {w:"IPCC", d:"climate science panel"},
-    {w:"LOAM", d:"rich, crumbly soil"},
-    {w:"OIL",  d:"fossil fuel from wells"},
-    {w:"PEAT", d:"bog soil that holds carbon"},
-    {w:"PPM",  d:"parts per million, CO2 measure"},
-    {w:"REEF", d:"coral ecosystem in warm seas"},
-    {w:"SMOG", d:"polluted city air"},
-    {w:"WIND", d:"clean power from moving air"},
-  ]},
-  { name: "California housing & planning", words: [
-    {w:"ADU",  d:"accessory dwelling unit"},
-    {w:"ADA",  d:"disability access rules"},
-    {w:"CEQA", d:"state environmental review law"},
-    {w:"EIR",  d:"environmental impact report"},
-    {w:"HUD",  d:"federal housing agency"},
-    {w:"LEED", d:"green building rating"},
-    {w:"LOT",  d:"parcel of land"},
-    {w:"HCD",  d:"state housing department"},
-    {w:"RHNA", d:"regional housing needs quota"},
-    {w:"SRO",  d:"single room occupancy hotel"},
-  ]},
-];
-let topic = SHIPPED_TOPICS[0];
+// topic lists load from the server: makewords_lists/lists.json names the
+// files, and each file holds one list in the same JSON the file loader
+// below takes. Kept on the server so lists can be added without touching
+// the page.
+const LISTS_DIR = "makewords_lists";
+let SHIPPED_TOPICS = [];
+let topic = { words: [] };
+
+// parse a topic file's text: an array of {w,d} objects, [w,d] pairs, or
+// bare strings. Returns the word array, or null when it does not read.
+function parseTopicWords(text){
+  try{
+    const arr = JSON.parse(text);
+    if(!Array.isArray(arr)) return null;
+    const seen = new Set(), words = [];
+    for(const item of arr){
+      let w, d="";
+      if(typeof item === "string") w = item;
+      else if(item && typeof item === "object"){
+        w = item.w ?? item.word;
+        d = String(item.d ?? item.def ?? item.definition ?? "");
+      } else continue;
+      w = String(w).trim().toUpperCase();
+      if(w.length<2 || seen.has(w)) continue;
+      seen.add(w);
+      words.push({w, d: d.trim()});
+    }
+    if(words.length < 3) return null;
+    words.sort((a,b)=> a.w < b.w ? -1 : 1);
+    return words;
+  }catch(e){ return null; }
+}
+
+async function loadShippedTopics(){
+  try{
+    const man = await (await fetch(LISTS_DIR + "/lists.json")).json();
+    const lists = await Promise.all(man.map(async e => {
+      const words = parseTopicWords(await (await fetch(LISTS_DIR + "/" + e.file)).text());
+      return words ? {name: e.name, words} : null;
+    }));
+    SHIPPED_TOPICS = lists.filter(Boolean);
+  }catch(e){ SHIPPED_TOPICS = []; }
+}
 
 // parse a topic file's text: an array of {w,d} objects, [w,d] pairs, or
 // bare strings. Returns true and deals a new game when it takes.
@@ -784,10 +744,30 @@ function startGame(){
      <button id="btn-play" style="margin-top:12px">Play</button>
      <button id="btn-topic">Load a topic file&hellip;</button>`;
   const sel = document.getElementById("topic-select");
-  SHIPPED_TOPICS.forEach((t,i)=>{
-    const o = document.createElement("option");
-    o.value = String(i); o.textContent = t.name;
-    sel.appendChild(o);
+  const btnPlay = document.getElementById("btn-play");
+  const o0 = document.createElement("option");
+  o0.textContent = "loading lists…";
+  sel.appendChild(o0);
+  btnPlay.disabled = true;
+  loadShippedTopics().then(()=>{
+    if(SHIPPED_TOPICS.length){
+      sel.innerHTML = "";
+      SHIPPED_TOPICS.forEach((t,i)=>{
+        const o = document.createElement("option");
+        o.value = String(i); o.textContent = t.name;
+        sel.appendChild(o);
+      });
+      btnPlay.disabled = false;
+    } else { // no server lists: say so, and point at the file button
+      sel.innerHTML = "";
+      const o = document.createElement("option");
+      o.textContent = "no lists found";
+      sel.appendChild(o);
+      const p = document.createElement("p");
+      p.className = "keys"; p.style.color = "#E4593B";
+      p.textContent = "The lists in makewords_lists/ did not load. Load a topic file below, or serve this page over http.";
+      document.getElementById("card").appendChild(p);
+    }
   });
   const selSeed = document.getElementById("seed-select");
   try{ // a seed word in the address shows as the pick, and the deal matches it
@@ -795,6 +775,7 @@ function startGame(){
     if(hw && !hw.startsWith("/")) selSeed.value = hw;
   }catch(e){}
   document.getElementById("btn-play").onclick = ()=>{
+    if(!SHIPPED_TOPICS.length) return; // no lists yet (or they failed)
     topic = SHIPPED_TOPICS[parseInt(sel.value,10) || 0];
     let w = selSeed.value;
     if(!w){ // no pick: fall back to the seed word already in the address

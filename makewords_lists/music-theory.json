@@ -1,0 +1,62 @@
+[
+  {
+    "w": "ARIA",
+    "d": "opera solo song"
+  },
+  {
+    "w": "BAR",
+    "d": "one measure of time"
+  },
+  {
+    "w": "BASS",
+    "d": "the lowest part"
+  },
+  {
+    "w": "BEAT",
+    "d": "the basic pulse"
+  },
+  {
+    "w": "BPM",
+    "d": "beats per minute"
+  },
+  {
+    "w": "CLEF",
+    "d": "symbol that fixes the lines' pitches"
+  },
+  {
+    "w": "CODA",
+    "d": "the closing passage"
+  },
+  {
+    "w": "DUET",
+    "d": "two playing together"
+  },
+  {
+    "w": "FLAT",
+    "d": "a half step down"
+  },
+  {
+    "w": "KEY",
+    "d": "the tonal home of a piece"
+  },
+  {
+    "w": "MODE",
+    "d": "a scale's flavor, like dorian"
+  },
+  {
+    "w": "REED",
+    "d": "sliver that buzzes in a woodwind"
+  },
+  {
+    "w": "RIFF",
+    "d": "a repeated figure you remember"
+  },
+  {
+    "w": "SLUR",
+    "d": "play the notes connected"
+  },
+  {
+    "w": "VAMP",
+    "d": "repeated intro, until the singer comes"
+  }
+]

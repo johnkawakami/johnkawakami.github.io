@@ -1,0 +1,58 @@
+[
+  {
+    "w": "ACE",
+    "d": "the highest card"
+  },
+  {
+    "w": "BID",
+    "d": "what you promise to take"
+  },
+  {
+    "w": "WAR",
+    "d": "simplest card war there is"
+  },
+  {
+    "w": "FLOP",
+    "d": "the first three shared cards"
+  },
+  {
+    "w": "BLIND",
+    "d": "the forced bet before cards"
+  },
+  {
+    "w": "TRUMP",
+    "d": "the suit that beats all"
+  },
+  {
+    "w": "CLUB",
+    "d": "one black suit"
+  },
+  {
+    "w": "HEART",
+    "d": "one red suit"
+  },
+  {
+    "w": "SPADE",
+    "d": "the other black suit"
+  },
+  {
+    "w": "MELD",
+    "d": "laid-down scoring set"
+  },
+  {
+    "w": "DRAW",
+    "d": "take from the deck"
+  },
+  {
+    "w": "SKIP",
+    "d": "pass your turn"
+  },
+  {
+    "w": "JOKER",
+    "d": "the wild card"
+  },
+  {
+    "w": "RUMMY",
+    "d": "the matching-card classic"
+  }
+]

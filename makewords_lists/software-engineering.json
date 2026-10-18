@@ -1,0 +1,62 @@
+[
+  {
+    "w": "API",
+    "d": "application programming interface"
+  },
+  {
+    "w": "BUG",
+    "d": "defect in the code"
+  },
+  {
+    "w": "CLI",
+    "d": "command-line interface"
+  },
+  {
+    "w": "DOM",
+    "d": "document object model"
+  },
+  {
+    "w": "EOF",
+    "d": "end of file"
+  },
+  {
+    "w": "FORK",
+    "d": "split a repo or a process"
+  },
+  {
+    "w": "GIT",
+    "d": "version control"
+  },
+  {
+    "w": "HEAP",
+    "d": "dynamic memory pool"
+  },
+  {
+    "w": "INT",
+    "d": "integer type"
+  },
+  {
+    "w": "LINT",
+    "d": "flag shaky code"
+  },
+  {
+    "w": "LOOP",
+    "d": "run it again and again"
+  },
+  {
+    "w": "NULL",
+    "d": "nothing, on purpose"
+  },
+  {
+    "w": "PIPE",
+    "d": "chain commands together"
+  },
+  {
+    "w": "PUSH",
+    "d": "send commits to the remote"
+  },
+  {
+    "w": "UX",
+    "d": "user experience"
+  }
+]
