@@ -1,54 +1,54 @@
 [
-  {
-    "w": "TIN",
-    "d": "element 50, soft metal"
-  },
-  {
-    "w": "ACID",
-    "d": "sour reactive stuff"
-  },
-  {
-    "w": "SALT",
-    "d": "sodium chloride"
-  },
-  {
-    "w": "GOLD",
-    "d": "element 79, never rusts"
-  },
-  {
-    "w": "IRON",
-    "d": "element 26, in your blood"
-  },
-  {
-    "w": "LEAD",
-    "d": "element 82, heavy and toxic"
-  },
-  {
-    "w": "ZINC",
-    "d": "element 30, fights rust"
-  },
-  {
-    "w": "NEON",
-    "d": "element 10, glows red-orange"
-  },
-  {
-    "w": "ALLOY",
-    "d": "metal blended from metals"
-  },
-  {
-    "w": "ARGON",
-    "d": "element 18, noble and inert"
-  },
-  {
-    "w": "BORON",
-    "d": "element 5, hardens glass"
-  },
-  {
-    "w": "OXIDE",
-    "d": "oxygen joined to a metal"
-  },
-  {
-    "w": "XENON",
-    "d": "element 54, the heavy noble"
-  }
+ {
+  "w": "ACID",
+  "d": "sour reactive stuff"
+ },
+ {
+  "w": "BASE",
+  "d": "the opposite of acid"
+ },
+ {
+  "w": "GOLD",
+  "d": "element 79, never rusts"
+ },
+ {
+  "w": "ION",
+  "d": "an atom that gained or lost"
+ },
+ {
+  "w": "IRON",
+  "d": "element 26, in your blood"
+ },
+ {
+  "w": "LEAD",
+  "d": "element 82, heavy and toxic"
+ },
+ {
+  "w": "MOLE",
+  "d": "6.02e23 of anything"
+ },
+ {
+  "w": "NEON",
+  "d": "element 10, glows red-orange"
+ },
+ {
+  "w": "ORE",
+  "d": "rock that holds metal"
+ },
+ {
+  "w": "RUST",
+  "d": "iron's slow burn"
+ },
+ {
+  "w": "SALT",
+  "d": "sodium chloride"
+ },
+ {
+  "w": "TIN",
+  "d": "element 50, soft metal"
+ },
+ {
+  "w": "ZINC",
+  "d": "element 30, fights rust"
+ }
 ]

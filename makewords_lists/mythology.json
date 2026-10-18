@@ -1,62 +1,62 @@
 [
-  {
-    "w": "HERA",
-    "d": "queen of the Greek gods"
-  },
-  {
-    "w": "ARES",
-    "d": "god of war"
-  },
-  {
-    "w": "ISIS",
-    "d": "Egyptian magician queen"
-  },
-  {
-    "w": "ODIN",
-    "d": "the one-eyed Allfather"
-  },
-  {
-    "w": "THOR",
-    "d": "hammer and thunder"
-  },
-  {
-    "w": "LOKI",
-    "d": "trickster of the north"
-  },
-  {
-    "w": "RHEA",
-    "d": "mother of the Olympians"
-  },
-  {
-    "w": "ZEUS",
-    "d": "sky father with the bolts"
-  },
-  {
-    "w": "ECHO",
-    "d": "nymph who repeats the last words"
-  },
-  {
-    "w": "JOVE",
-    "d": "Roman name for Jupiter"
-  },
-  {
-    "w": "FAUN",
-    "d": "goat-legged woodlander"
-  },
-  {
-    "w": "ARGUS",
-    "d": "the watchman with many eyes"
-  },
-  {
-    "w": "HORUS",
-    "d": "falcon god of Egypt"
-  },
-  {
-    "w": "TITAN",
-    "d": "elder god of great size"
-  },
-  {
-    "w": "NYMPH",
-    "d": "nature spirit of stream and tree"
-  }
+ {
+  "w": "ARES",
+  "d": "god of war"
+ },
+ {
+  "w": "ATEN",
+  "d": "the sun disc"
+ },
+ {
+  "w": "ECHO",
+  "d": "nymph who repeats the last words"
+ },
+ {
+  "w": "EOS",
+  "d": "goddess of the dawn"
+ },
+ {
+  "w": "FAUN",
+  "d": "goat-legged woodlander"
+ },
+ {
+  "w": "GAIA",
+  "d": "mother earth"
+ },
+ {
+  "w": "HERA",
+  "d": "queen of the Greek gods"
+ },
+ {
+  "w": "ISIS",
+  "d": "Egyptian magician queen"
+ },
+ {
+  "w": "JOVE",
+  "d": "Roman name for Jupiter"
+ },
+ {
+  "w": "LOKI",
+  "d": "trickster of the north"
+ },
+ {
+  "w": "MUSE",
+  "d": "one of nine, inspires the arts"
+ },
+ {
+  "w": "ODIN",
+  "d": "the one-eyed Allfather"
+ },
+ {
+  "w": "RHEA",
+  "d": "mother of the Olympians"
+ },
+ {
+  "w": "THOR",
+  "d": "hammer and thunder"
+ },
+ {
+  "w": "ZEUS",
+  "d": "sky father with the bolts"
+ }
 ]

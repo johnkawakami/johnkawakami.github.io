@@ -1,50 +1,50 @@
 [
-  {
-    "w": "SUN",
-    "d": "our own star"
-  },
-  {
-    "w": "SKY",
-    "d": "the dome overhead"
-  },
-  {
-    "w": "STAR",
-    "d": "a distant sun"
-  },
-  {
-    "w": "MOON",
-    "d": "Earth's companion"
-  },
-  {
-    "w": "MARS",
-    "d": "the red planet"
-  },
-  {
-    "w": "NOVA",
-    "d": "star that flares bright"
-  },
-  {
-    "w": "QUARK",
-    "d": "what protons are made of"
-  },
-  {
-    "w": "ORBIT",
-    "d": "the path around a mass"
-  },
-  {
-    "w": "COMET",
-    "d": "dirty snowball with a tail"
-  },
-  {
-    "w": "PLUTO",
-    "d": "demoted dwarf planet"
-  },
-  {
-    "w": "VENUS",
-    "d": "morning and evening star"
-  },
-  {
-    "w": "LUNAR",
-    "d": "of the moon"
-  }
+ {
+  "w": "DUST",
+  "d": "what comets trail behind"
+ },
+ {
+  "w": "ERIS",
+  "d": "dwarf planet past Pluto"
+ },
+ {
+  "w": "HALO",
+  "d": "ring of stars around a galaxy"
+ },
+ {
+  "w": "LUNA",
+  "d": "the moon, in Latin"
+ },
+ {
+  "w": "MARS",
+  "d": "the red planet"
+ },
+ {
+  "w": "MOON",
+  "d": "Earth's companion"
+ },
+ {
+  "w": "MUON",
+  "d": "a heavy electron"
+ },
+ {
+  "w": "NOVA",
+  "d": "star that flares bright"
+ },
+ {
+  "w": "SKY",
+  "d": "the dome overhead"
+ },
+ {
+  "w": "STAR",
+  "d": "a distant sun"
+ },
+ {
+  "w": "SUN",
+  "d": "our own star"
+ },
+ {
+  "w": "URSA",
+  "d": "the bear overhead"
+ }
 ]

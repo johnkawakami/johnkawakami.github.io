@@ -1,58 +1,58 @@
 [
-  {
-    "w": "ROD",
-    "d": "the long flexible tool"
-  },
-  {
-    "w": "NET",
-    "d": "what lands the fish"
-  },
-  {
-    "w": "FLY",
-    "d": "the feathery artificial lure"
-  },
-  {
-    "w": "BAIT",
-    "d": "what tempts the fish"
-  },
-  {
-    "w": "HOOK",
-    "d": "the barbed end of it"
-  },
-  {
-    "w": "LURE",
-    "d": "the flashy fake prey"
-  },
-  {
-    "w": "REEL",
-    "d": "winds the line back"
-  },
-  {
-    "w": "CHUM",
-    "d": "scattered bits that draw fish"
-  },
-  {
-    "w": "CAST",
-    "d": "send the line out"
-  },
-  {
-    "w": "PIKE",
-    "d": "toothy ambush predator"
-  },
-  {
-    "w": "SPOOL",
-    "d": "where the line lives"
-  },
-  {
-    "w": "SNOOK",
-    "d": " prized inshore fighter"
-  },
-  {
-    "w": "TROUT",
-    "d": "cold-water favorite"
-  },
-  {
-    "w": "TROLL",
-    "d": "drag lures behind the boat"
-  }
+ {
+  "w": "BAIT",
+  "d": "what tempts the fish"
+ },
+ {
+  "w": "BASS",
+  "d": "the pond favorite"
+ },
+ {
+  "w": "CARP",
+  "d": "the pond giant"
+ },
+ {
+  "w": "CAST",
+  "d": "send the line out"
+ },
+ {
+  "w": "CHUM",
+  "d": "scattered bits that draw fish"
+ },
+ {
+  "w": "DRAG",
+  "d": "the reel's brake"
+ },
+ {
+  "w": "FLY",
+  "d": "the feathery artificial lure"
+ },
+ {
+  "w": "HOOK",
+  "d": "the barbed end of it"
+ },
+ {
+  "w": "JIG",
+  "d": "a lure worked in jerks"
+ },
+ {
+  "w": "LURE",
+  "d": "the flashy fake prey"
+ },
+ {
+  "w": "NET",
+  "d": "what lands the fish"
+ },
+ {
+  "w": "PIKE",
+  "d": "toothy ambush predator"
+ },
+ {
+  "w": "REEL",
+  "d": "winds the line back"
+ },
+ {
+  "w": "ROD",
+  "d": "the long flexible tool"
+ }
 ]

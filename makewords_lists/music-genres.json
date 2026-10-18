@@ -1,62 +1,62 @@
 [
-  {
-    "w": "SKA",
-    "d": "offbeat Jamaican precursor of reggae"
-  },
-  {
-    "w": "DRUM",
-    "d": "keep the beat"
-  },
-  {
-    "w": "BASS",
-    "d": "low end"
-  },
-  {
-    "w": "FUNK",
-    "d": "the groove with the gap"
-  },
-  {
-    "w": "JAZZ",
-    "d": "swing and improvisation"
-  },
-  {
-    "w": "PUNK",
-    "d": "three chords and the truth"
-  },
-  {
-    "w": "RAGA",
-    "d": "the melodic frame of Hindustani music"
-  },
-  {
-    "w": "TEMPO",
-    "d": "the speed of the beat"
-  },
-  {
-    "w": "DISCO",
-    "d": "four on the floor"
-  },
-  {
-    "w": "HOUSE",
-    "d": "steady Chicago dance music"
-  },
-  {
-    "w": "INDIE",
-    "d": "on your own label"
-  },
-  {
-    "w": "OBOE",
-    "d": "the double-reed tune-giver"
-  },
-  {
-    "w": "CELLO",
-    "d": "the singing big fiddle"
-  },
-  {
-    "w": "VIOLA",
-    "d": "the alto fiddle"
-  },
-  {
-    "w": "SALSA",
-    "d": "hot Cuban-rooted dance"
-  }
+ {
+  "w": "ACID",
+  "d": "wobbly 303 lines over a four-four"
+ },
+ {
+  "w": "BASS",
+  "d": "low end"
+ },
+ {
+  "w": "BEAT",
+  "d": "the pulse you nod to"
+ },
+ {
+  "w": "DRUM",
+  "d": "keep the beat"
+ },
+ {
+  "w": "EMO",
+  "d": "feelings over power chords"
+ },
+ {
+  "w": "FUNK",
+  "d": "the groove with the gap"
+ },
+ {
+  "w": "HARP",
+  "d": "plucked strings, heavenly"
+ },
+ {
+  "w": "JAZZ",
+  "d": "swing and improvisation"
+ },
+ {
+  "w": "OBOE",
+  "d": "the double-reed tune-giver"
+ },
+ {
+  "w": "PUNK",
+  "d": "three chords and the truth"
+ },
+ {
+  "w": "RAGA",
+  "d": "the melodic frame of Hindustani music"
+ },
+ {
+  "w": "ROCK",
+  "d": "guitars turned all the way up"
+ },
+ {
+  "w": "SKA",
+  "d": "offbeat Jamaican precursor of reggae"
+ },
+ {
+  "w": "SOUL",
+  "d": "the feeling in the singing"
+ },
+ {
+  "w": "TUBA",
+  "d": "the big brass bottom"
+ }
 ]

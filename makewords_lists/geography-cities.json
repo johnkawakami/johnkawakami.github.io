@@ -1,62 +1,62 @@
 [
-  {
-    "w": "RIGA",
-    "d": "capital of Latvia"
-  },
-  {
-    "w": "LIMA",
-    "d": "capital of Peru"
-  },
-  {
-    "w": "PERU",
-    "d": "Andean nation"
-  },
-  {
-    "w": "LAOS",
-    "d": "Southeast Asian kingdom"
-  },
-  {
-    "w": "FIJI",
-    "d": "Pacific island nation"
-  },
-  {
-    "w": "OSLO",
-    "d": "capital of Norway"
-  },
-  {
-    "w": "CAIRO",
-    "d": "capital of Egypt"
-  },
-  {
-    "w": "TOKYO",
-    "d": "capital of Japan"
-  },
-  {
-    "w": "KYOTO",
-    "d": "the old imperial capital"
-  },
-  {
-    "w": "ACCRA",
-    "d": "capital of Ghana"
-  },
-  {
-    "w": "SEOUL",
-    "d": "capital of South Korea"
-  },
-  {
-    "w": "DELHI",
-    "d": "India's capital territory"
-  },
-  {
-    "w": "TUNIS",
-    "d": "capital of Tunisia"
-  },
-  {
-    "w": "QUITO",
-    "d": "high capital of Ecuador"
-  },
-  {
-    "w": "CONGO",
-    "d": "river and two nations"
-  }
+ {
+  "w": "APIA",
+  "d": "capital of Samoa"
+ },
+ {
+  "w": "BERN",
+  "d": "capital of Switzerland"
+ },
+ {
+  "w": "DILI",
+  "d": "capital of Timor-Leste"
+ },
+ {
+  "w": "DOHA",
+  "d": "capital of Qatar"
+ },
+ {
+  "w": "FIJI",
+  "d": "Pacific island nation"
+ },
+ {
+  "w": "KYIV",
+  "d": "capital of Ukraine"
+ },
+ {
+  "w": "LAOS",
+  "d": "Southeast Asian kingdom"
+ },
+ {
+  "w": "LIMA",
+  "d": "capital of Peru"
+ },
+ {
+  "w": "MALE",
+  "d": "capital of the Maldives"
+ },
+ {
+  "w": "NILE",
+  "d": "the long river north"
+ },
+ {
+  "w": "OSLO",
+  "d": "capital of Norway"
+ },
+ {
+  "w": "PERU",
+  "d": "Andean nation"
+ },
+ {
+  "w": "RIGA",
+  "d": "capital of Latvia"
+ },
+ {
+  "w": "ROME",
+  "d": "capital of Italy"
+ },
+ {
+  "w": "SUVA",
+  "d": "capital of Fiji"
+ }
 ]

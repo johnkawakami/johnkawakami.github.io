@@ -1,62 +1,62 @@
 [
-  {
-    "w": "AFT",
-    "d": "toward the stern"
-  },
-  {
-    "w": "BOW",
-    "d": "the pointy front"
-  },
-  {
-    "w": "JIB",
-    "d": "the forward staysail"
-  },
-  {
-    "w": "MAST",
-    "d": "holds the sail up"
-  },
-  {
-    "w": "SAIL",
-    "d": "cloth that catches wind"
-  },
-  {
-    "w": "KEEL",
-    "d": "the fin that stops capsizing"
-  },
-  {
-    "w": "TACK",
-    "d": "the zigzag course upwind"
-  },
-  {
-    "w": "KNOT",
-    "d": "the nautical mile per hour"
-  },
-  {
-    "w": "HULL",
-    "d": "the floating body"
-  },
-  {
-    "w": "YAWL",
-    "d": "two-masted small craft"
-  },
-  {
-    "w": "PROA",
-    "d": "Pacific outrigger canoe"
-  },
-  {
-    "w": "BOSUN",
-    "d": "the deck's boss"
-  },
-  {
-    "w": "SLOOP",
-    "d": "one mast, one foresail"
-  },
-  {
-    "w": "MOOR",
-    "d": "tie the boat fast"
-  },
-  {
-    "w": "GALE",
-    "d": "wind strong enough to sail hard"
-  }
+ {
+  "w": "AFT",
+  "d": "toward the stern"
+ },
+ {
+  "w": "BOW",
+  "d": "the pointy front"
+ },
+ {
+  "w": "BRIG",
+  "d": "two square-rigged masts"
+ },
+ {
+  "w": "GALE",
+  "d": "wind strong enough to sail hard"
+ },
+ {
+  "w": "HULL",
+  "d": "the floating body"
+ },
+ {
+  "w": "JIB",
+  "d": "the forward staysail"
+ },
+ {
+  "w": "KEEL",
+  "d": "the fin that stops capsizing"
+ },
+ {
+  "w": "KNOT",
+  "d": "the nautical mile per hour"
+ },
+ {
+  "w": "MAST",
+  "d": "holds the sail up"
+ },
+ {
+  "w": "MATE",
+  "d": "the captain's second"
+ },
+ {
+  "w": "MOOR",
+  "d": "tie the boat fast"
+ },
+ {
+  "w": "PROA",
+  "d": "Pacific outrigger canoe"
+ },
+ {
+  "w": "SAIL",
+  "d": "cloth that catches wind"
+ },
+ {
+  "w": "TACK",
+  "d": "the zigzag course upwind"
+ },
+ {
+  "w": "YAWL",
+  "d": "two-masted small craft"
+ }
 ]
