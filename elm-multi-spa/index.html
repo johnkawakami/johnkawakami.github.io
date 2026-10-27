@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>5-SPA Tabs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <script> // PRELOAD_INIT
+    try {
+      var initialContent = "<p>This is a mock up of a text editor with messaging.</p><p><br></p><p>It doesn't do anything. Almost everything is fake.</p><p><br></p><p>It was vibe coded:</p><p>Language: Elm</p><p>Model: Big Pickle in OpenCode</p><p>Debugging: Playwright</p><p><br></p>";
+      localStorage.setItem('elm-multi-spa-document', JSON.stringify({ title: 'Untitled Document', content: initialContent }));
+    } catch(e){}
+  </script>
+
+  <div id="elm-app"></div>
+
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    var app = Elm.Main.init({ node: document.getElementById('elm-app') });
+    try {
+      if (localStorage.getItem('elm-multi-spa-dark') === '1') {
+        document.body.classList.add('dark');
+      }
+    } catch (e) {}
+    setTimeout(function() {
+      var toggle = document.getElementById('dark-mode-toggle');
+      if (toggle && document.body.classList.contains('dark')) {
+        toggle.checked = true;
+      }
+    }, 500);
+    setInterval(function() {
+      var toggle = document.getElementById('dark-mode-toggle');
+      if (toggle) {
+        if (document.body.classList.contains('dark') && !toggle.checked) toggle.checked = true;
+        if (!document.body.classList.contains('dark') && toggle.checked) toggle.checked = false;
+      }
+    }, 1000);
+
+    function applyDarkModeStyles() {
+      setTimeout(function() {
+        var qlContainer = document.querySelector('.ql-container');
+        var qlToolbar = document.querySelector('.ql-toolbar');
+        var qlEditor = document.querySelector('.ql-editor');
+        if (document.body.classList.contains('dark')) {
+          if (qlContainer) qlContainer.style.background = '#1e1e1e';
+          if (qlEditor) { qlEditor.style.background = '#1e1e1e'; qlEditor.style.color = '#fff'; }
+          if (qlToolbar) qlToolbar.style.background = '#2d2d2d';
+        } else {
+          if (qlContainer) qlContainer.style.background = '#fff';
+          if (qlEditor) { qlEditor.style.background = '#fff'; qlEditor.style.color = '#000'; }
+          if (qlToolbar) qlToolbar.style.background = '#f0f0f0';
+        }
+        var editorDiv = document.querySelector('#quill-editor');
+        if (editorDiv && editorDiv.parentElement) {
+          editorDiv.parentElement.style.background = document.body.classList.contains('dark') ? '#111' : '#f5f5f5';
+          var titleInput = getTitleInput();
+          if (titleInput && document.body.classList.contains('dark')) {
+            titleInput.style.background = '#111';
+            titleInput.style.color = '#fff';
+            titleInput.style.borderBottom = '1px solid #333';
+          } else if (titleInput) {
+            titleInput.style.background = '#f5f5f5';
+            titleInput.style.color = '#000';
+            titleInput.style.borderBottom = '1px solid #ddd';
+          }
+        }
+      }, 50);
+    }
+
+    if (app.ports && app.ports.toggleDarkMode) {
+      app.ports.toggleDarkMode.subscribe(function() {
+        document.body.classList.toggle('dark');
+        try {
+          localStorage.setItem('elm-multi-spa-dark', document.body.classList.contains('dark') ? '1' : '0');
+        } catch (e) {}
+        var toggle = document.getElementById('dark-mode-toggle');
+        if (toggle) {
+          toggle.checked = document.body.classList.contains('dark');
+        }
+        saveDocumentNow();
+        applyDarkModeStyles();
+      });
+    }
+    applyDarkModeStyles();
+    setInterval(applyDarkModeStyles, 500);
+    document.addEventListener('change', function(e) {
+      if (e.target && e.target.id === 'dark-mode-toggle') {
+        if (e.target.checked) {
+          document.body.classList.add('dark');
+          try { localStorage.setItem('elm-multi-spa-dark', '1'); } catch(ex){}
+        } else {
+          document.body.classList.remove('dark');
+          try { localStorage.setItem('elm-multi-spa-dark', '0'); } catch(ex){}
+        }
+        saveDocumentNow();
+        applyDarkModeStyles();
+      }
+    });
+
+    var quill = null;
+    var editorNode = null;
+    var currentDoc = { title: '', content: '' };
+
+    function getTitleInput() {
+      var inputs = document.querySelectorAll('input[type="text"]');
+      for (var i = 0; i < inputs.length; i++) {
+        if (inputs[i].placeholder === 'Untitled Document') {
+          return inputs[i];
+        }
+      }
+      return null;
+    }
+
+    function saveDocumentNow() {
+      try {
+        var titleInput = getTitleInput();
+        var title = titleInput ? titleInput.value : (currentDoc.title || '');
+        currentDoc.title = title || '';
+        var content = (quill && quill.root) ? quill.root.innerHTML : (currentDoc.content || '');
+        currentDoc.content = content || '';
+        localStorage.setItem('elm-multi-spa-document', JSON.stringify(currentDoc));
+      } catch (e) {}
+    }
+
+    function restoreNow() {
+      try {
+        var saved = localStorage.getItem('elm-multi-spa-document');
+        var initialContent = "<p>This is a mock up of a text editor with messaging.</p><p><br></p><p>It doesn't do anything. Almost everything is fake.</p><p><br></p><p>It was vibe coded:</p><p>Language: Elm</p><p>Model: Big Pickle in OpenCode</p><p>Debugging: Playwright</p><p><br></p>";
+        if (saved) {
+          var data = JSON.parse(saved);
+          currentDoc.title = data.title !== undefined ? data.title : currentDoc.title;
+          currentDoc.content = data.content !== undefined ? data.content : currentDoc.content;
+        } else {
+          currentDoc.title = 'Untitled Document';
+          currentDoc.content = initialContent;
+          try { localStorage.setItem('elm-multi-spa-document', JSON.stringify(currentDoc)); } catch(e){}
+        }
+        var titleInput = getTitleInput();
+        if (titleInput) {
+          titleInput.value = currentDoc.title || '';
+          titleInput.oninput = function() { currentDoc.title = titleInput.value; saveDocumentNow(); };
+        }
+        if (quill) {
+          if (currentDoc.content && currentDoc.content.trim() !== '') {
+            if (quill.root.innerHTML !== currentDoc.content) {
+              quill.root.innerHTML = currentDoc.content;
+            }
+          } else {
+            quill.root.innerHTML = initialContent;
+            currentDoc.content = initialContent;
+            saveDocumentNow();
+          }
+        }
+      } catch (e) {}
+    }
+
+    function initQuill() {
+      var node = document.getElementById('quill-editor');
+      if (!node) {
+        quill = null;
+        return;
+      }
+      if (quill && quill.container === node) {
+        var saved2 = localStorage.getItem('elm-multi-spa-document');
+        try { var sd2 = saved2 ? JSON.parse(saved2) : null; if (sd2) { currentDoc.title = sd2.title || currentDoc.title; currentDoc.content = sd2.content || currentDoc.content; } } catch(e){}
+        var titleInput2 = getTitleInput();
+        if (titleInput2) { titleInput2.value = currentDoc.title; titleInput2.oninput = function() { currentDoc.title = titleInput2.value; saveDocumentNow(); }; }
+        if (quill && currentDoc.content && quill.root.innerHTML !== currentDoc.content) { try { quill.root.innerHTML = currentDoc.content; } catch(e){} }
+        if (quill) {
+          quill.on ? quill.on('text-change', function() { currentDoc.content = quill.root.innerHTML; saveDocumentNow(); }) : null;
+        }
+        saveDocumentNow();
+        return;
+      }
+      quill = null;
+      try {
+        var Block = Quill.import('blots/block');
+        Block.tagName = ['P', 'H2', 'H3'];
+        Quill.register(Block, true);
+
+        var saved = localStorage.getItem('elm-multi-spa-document');
+        var savedData = null;
+        try { if (saved) savedData = JSON.parse(saved); } catch(e){}
+        if (savedData) {
+          currentDoc.title = savedData.title || '';
+          currentDoc.content = savedData.content || '';
+        } else {
+          var saved3 = localStorage.getItem('elm-multi-spa-document');
+          try { var sd3 = saved3 ? JSON.parse(saved3) : null; if (sd3) { currentDoc.title = sd3.title || ''; currentDoc.content = sd3.content || ''; } } catch(e){}
+        }
+
+        quill = new Quill(node, {
+          theme: 'snow',
+          placeholder: 'Start writing...',
+          modules: {
+            toolbar: [
+              [{ 'header': [false, 2, 3] }],
+              ['bold', 'italic', 'underline'],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              ['clean']
+            ]
+          }
+        });
+        if (currentDoc.content) {
+          try { quill.root.innerHTML = currentDoc.content; } catch(e){}
+        }
+        if (quill) {
+          quill.on('text-change', function() { currentDoc.content = quill.root.innerHTML; saveDocumentNow(); });
+        }
+        setTimeout(saveDocumentNow, 10);
+        setTimeout(restoreNow, 20);
+
+        setTimeout(function() {
+          var qlEditor = node.querySelector('.ql-editor');
+          if (qlEditor) {
+            qlEditor.style.fontSize = '16px';
+            qlEditor.style.lineHeight = '1.4';
+            qlEditor.style.border = 'none';
+            if (document.body.classList.contains('dark')) {
+              qlEditor.style.background = '#1e1e1e';
+              qlEditor.style.color = '#fff';
+            } else {
+              qlEditor.style.background = '#fff';
+              qlEditor.style.color = '#000';
+            }
+          }
+          var qlToolbar = node.querySelector('.ql-toolbar');
+          if (qlToolbar) {
+            qlToolbar.style.background = document.body.classList.contains('dark') ? '#2d2d2d' : '#f0f0f0';
+            qlToolbar.style.border = 'none';
+            qlToolbar.style.borderBottom = document.body.classList.contains('dark') ? '1px solid #444' : '1px solid #ddd';
+          }
+          var qlContainer = node.querySelector('.ql-container');
+          if (qlContainer) {
+            qlContainer.style.border = 'none';
+            if (document.body.classList.contains('dark')) {
+              qlContainer.style.background = '#1e1e1e';
+            } else {
+              qlContainer.style.background = '#fff';
+            }
+          }
+          if (node.parentElement) {
+            node.parentElement.style.background = document.body.classList.contains('dark') ? '#111' : '#f5f5f5';
+          }
+          var titleInput = getTitleInput();
+          if (titleInput) {
+            if (savedData && savedData.title !== undefined) currentDoc.title = savedData.title;
+            titleInput.value = currentDoc.title;
+            titleInput.addEventListener('input', function() { currentDoc.title = titleInput.value; saveDocumentNow(); });
+            if (document.body.classList.contains('dark')) {
+              titleInput.style.background = '#111';
+              titleInput.style.color = '#fff';
+              titleInput.style.borderBottom = '1px solid #333';
+            } else {
+              titleInput.style.background = '#f5f5f5';
+              titleInput.style.color = '#000';
+              titleInput.style.borderBottom = '1px solid #ddd';
+            }
+          }
+          if (!document.getElementById('quill-font-style')) {
+            var style = document.createElement('style');
+            style.id = 'quill-font-style';
+            style.innerHTML = '.ql-editor { font-size: 16px !important; line-height: 1.4 !important; } .ql-editor p { font-size: 16px; } .ql-editor h2 { font-size: 1.5em; } .ql-editor h3 { font-size: 1.17em; } .ql-toolbar.ql-snow { border: none; background: #f0f0f0; border-bottom: 1px solid #ddd; } .ql-container.ql-snow { border: none; background: #fff; } body.dark .ql-toolbar.ql-snow { background: #2d2d2d; border-bottom: 1px solid #444; } body.dark .ql-toolbar.ql-snow .ql-picker-label, body.dark .ql-toolbar.ql-snow button { color: #fff; } body.dark .ql-toolbar.ql-snow .ql-stroke { stroke: #fff; } body.dark .ql-toolbar.ql-snow .ql-fill { fill: #fff; } body.dark .ql-toolbar.ql-snow .ql-picker-options { background: #2d2d2d; color: #fff; } body.dark .ql-container.ql-snow { background: #1e1e1e; } body.dark .ql-editor { background: #1e1e1e; color: #fff; } body.dark .spa-container h1 { color: #fff; } body.dark .spa-container li { color: #fff; }';
+            document.head.appendChild(style);
+          }
+          setTimeout(restoreNow, 50);
+        }, 50);
+        setTimeout(function() {
+          var qlEditor = node.querySelector('.ql-editor');
+          if (qlEditor && document.body.classList.contains('dark')) { qlEditor.style.background = '#1e1e1e'; qlEditor.style.color = '#fff'; }
+          var qlToolbar = node.querySelector('.ql-toolbar');
+          if (qlToolbar && document.body.classList.contains('dark')) { qlToolbar.style.background = '#2d2d2d'; qlToolbar.style.borderBottom = '1px solid #444'; }
+          var qlContainer = node.querySelector('.ql-container');
+          if (qlContainer && document.body.classList.contains('dark')) { qlContainer.style.background = '#1e1e1e'; }
+          if (node.parentElement) { node.parentElement.style.background = document.body.classList.contains('dark') ? '#111' : '#f5f5f5'; }
+          var titleInput = getTitleInput();
+          if (titleInput) {
+            if (savedData && savedData.title !== undefined) currentDoc.title = savedData.title;
+            titleInput.value = currentDoc.title;
+            titleInput.removeEventListener('input', function(){});
+            titleInput.addEventListener('input', function() { currentDoc.title = titleInput.value; saveDocumentNow(); });
+            if (document.body.classList.contains('dark')) { titleInput.style.background = '#111'; titleInput.style.color = '#fff'; titleInput.style.borderBottom = '1px solid #333'; }
+            else { titleInput.style.background = '#f5f5f5'; titleInput.style.color = '#000'; titleInput.style.borderBottom = '1px solid #ddd'; }
+          }
+          saveDocumentNow();
+        }, 200);
+
+      } catch (e) {
+        console.log('quill err', e);
+      }
+    }
+
+    window.addEventListener('beforeunload', saveDocumentNow);
+    document.addEventListener('visibilitychange', saveDocumentNow);
+    window.addEventListener('pagehide', saveDocumentNow);
+    setInterval(saveDocumentNow, 250);
+    setInterval(initQuill, 30);
+    initQuill();
+    setTimeout(restoreNow, 200);
+    setTimeout(restoreNow, 1000);
+    setTimeout(restoreNow, 2000);
+    setTimeout(saveDocumentNow, 500);
+
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'add-doc-btn') {
+        var dlg = document.getElementById('add-doc-dialog');
+        if (dlg) dlg.style.display = 'flex';
+        var input = document.getElementById('new-doc-title');
+        if (input) { input.value = ''; input.focus(); }
+      }
+      if (e.target && e.target.id === 'cancel-add') {
+        var dlg = document.getElementById('add-doc-dialog');
+        if (dlg) dlg.style.display = 'none';
+      }
+      if (e.target && e.target.id === 'create-add') {
+        var dlg = document.getElementById('add-doc-dialog');
+        var input = document.getElementById('new-doc-title');
+        var title = input ? input.value : '';
+        if (dlg) dlg.style.display = 'none';
+        if (title) {
+          try {
+            localStorage.setItem('elm-multi-spa-document', JSON.stringify({ title: title, content: '<p><br></p>' }));
+          } catch(ex) {}
+          var tabs = document.querySelectorAll('.tab');
+          if (tabs[1]) tabs[1].click();
+        }
+      }
+      if (e.target && e.target.classList && e.target.classList.contains('chat-item')) {
+        var container = document.querySelector('#spa-message') || document.querySelector('.spa.active');
+        if (!container) return;
+        container.innerHTML = '<div class="page-container"><div class="chat-window"><div class="chat-header"><button class="chat-back" id="chat-back">←</button><div style="font-weight:bold;">Chat</div></div><div class="chat-messages"><div class="message-bubble message-left">Why doesn\'t this work?</div><div class="message-bubble message-right">Because it\'s a mockup.</div></div></div></div>';
+      }
+      if (e.target && e.target.id === 'chat-back') {
+        var container = document.querySelector('#spa-message') || document.querySelector('.spa.active');
+        if (!container) return;
+        container.innerHTML = '<div class="page-container"><h1 class="page-title">Messages</h1><div class="chat-list"><button class="chat-item"><div class="avatar">A</div><div class="chat-info"><div class="chat-name">Alice</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">B</div><div class="chat-info"><div class="chat-name">Bob</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">C</div><div class="chat-info"><div class="chat-name">Carol</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">D</div><div class="chat-info"><div class="chat-name">Dave</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">E</div><div class="chat-info"><div class="chat-name">Eve</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">F</div><div class="chat-info"><div class="chat-name">Frank</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">G</div><div class="chat-info"><div class="chat-name">Grace</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">H</div><div class="chat-info"><div class="chat-name">Henry</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">I</div><div class="chat-info"><div class="chat-name">Ivy</div><div class="chat-preview">Tap to chat</div></div></button><button class="chat-item"><div class="avatar">J</div><div class="chat-info"><div class="chat-name">Jack</div><div class="chat-preview">Tap to chat</div></div></button></div></div>';
+      }
+    });
+
+    setTimeout(function() {
+      var inp = document.querySelector('.search-input');
+      if (inp && document.body.classList.contains('dark')) {
+        inp.style.background = '#2d2d2d';
+        inp.style.color = '#fff';
+        inp.style.border = '1px solid #444';
+      }
+    }, 1500);
+    try {
+      if (!localStorage.getItem('elm-multi-spa-document')) {
+        var initialContent = "<p>This is a mock up of a text editor with messaging.</p><p><br></p><p>It doesn't do anything. Almost everything is fake.</p><p><br></p><p>It was vibe coded:</p><p>Language: Elm</p><p>Model: Big Pickle in OpenCode</p><p>Debugging: Playwright</p><p><br></p>";
+        localStorage.setItem('elm-multi-spa-document', JSON.stringify({ title: 'Untitled Document', content: initialContent }));
+      }
+    } catch(e){}
+    // FORCE_RELOAD_INITIAL
+
+    try {
+      var initialContent = "<p>This is a mock up of a text editor with messaging.</p><p><br></p><p>It doesn't do anything. Almost everything is fake.</p><p><br></p><p>It was vibe coded:</p><p>Language: Elm</p><p>Model: Big Pickle in OpenCode</p><p>Debugging: Playwright</p><p><br></p>";
+      localStorage.setItem('elm-multi-spa-document', JSON.stringify({ title: 'Untitled Document', content: initialContent }));
+    } catch(e){}
+  </script>
+</body>
+</html>
+

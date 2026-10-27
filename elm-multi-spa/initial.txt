@@ -1,0 +1,11 @@
+This is a mock up of a text editor with messaging.
+
+It doesn't do anything. Almost everything is fake.
+
+It was vibe coded:
+
+Language: Elm
+Model: Big Pickle in OpenCode
+Debugging: Playwright
+
+

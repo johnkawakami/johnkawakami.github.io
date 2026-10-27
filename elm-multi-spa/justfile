@@ -1,0 +1,8 @@
+build:
+	elm make src/Main.elm --optimize --output=app.js
+
+dev:
+	elm make src/Main.elm --output=app.js
+
+clean:
+	rm -f app.js elm-stuff/ -r 2>/dev/null || true
