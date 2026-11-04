@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOTP Backup Translator</title>
+<style>
+  :root {
+    --bg: #eef2f1;
+    --surface: #ffffff;
+    --ink: #1b2a2a;
+    --ink-soft: #5c6b6a;
+    --line: #d5dedc;
+    --accent: #0f6f5c;
+    --accent-dark: #0b5546;
+    --accent-soft: #e2efec;
+    --error: #b4372f;
+    --error-soft: #f9e9e8;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  header { margin-bottom: 28px; }
+  header h1 { font-size: 22px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; color: var(--ink-soft); font-size: 14px; }
+
+  /* format bar */
+  .format-bar {
+    display: grid;
+    grid-template-columns: 1fr 56px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .format-select { position: relative; }
+  .format-select select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 34px 10px 14px;
+    font: inherit;
+    font-weight: 550;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .format-select select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .format-select::after {
+    content: "";
+    position: absolute;
+    right: 14px; top: 50%;
+    width: 8px; height: 8px;
+    border-right: 2px solid var(--ink-soft);
+    border-bottom: 2px solid var(--ink-soft);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+  #swap {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--accent);
+    font-size: 19px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.2), background 0.15s;
+    justify-self: center;
+  }
+  #swap:hover { background: var(--accent-soft); }
+  #swap.spun { transform: rotate(180deg); }
+  #swap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* panes */
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .pane {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    min-height: 46px;
+  }
+  .pane-title { font-weight: 600; font-size: 14px; }
+  .pane-head .hint { color: var(--ink-soft); font-size: 12px; }
+  .pane textarea {
+    flex: 1;
+    border: 0;
+    resize: vertical;
+    min-height: 260px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: transparent;
+    width: 100%;
+  }
+  .pane textarea:focus-visible { outline: none; }
+  .pane:focus-within { border-color: var(--accent); }
+  .pane textarea::placeholder { color: #9fb0ad; }
+  .pane.is-error textarea { background: var(--error-soft); }
+
+  .pane-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  button.act {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 550;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button.act:hover { background: var(--accent-soft); border-color: var(--accent); }
+  button.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button.primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+  /* status strip */
+  #status {
+    margin-top: 14px;
+    min-height: 24px;
+    font-size: 14px;
+  }
+  #status.ok { color: var(--accent-dark); font-weight: 550; }
+  #status.err { color: var(--error); font-weight: 550; }
+  #status .names { color: var(--ink-soft); font-weight: 400; }
+
+  details.notes {
+    margin-top: 26px;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  details.notes summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+  details.notes p { margin: 8px 0; }
+  details.notes code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+
+  @media (max-width: 760px) {
+    .panes { grid-template-columns: 1fr; }
+    .format-bar { grid-template-columns: 1fr 44px 1fr; }
+    #swap { width: 40px; height: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #swap { transition: none; }
+  }
+</style>
+<meta name="ai-disclosure" content="ai-autonomous" ai-model="GLM-5.3-Flash" ai-provider="Thaura"><meta name="generator" content="Thaura (GLM-5.3-Flash)"></head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>TOTP Backup Translator</h1>
+    <p>Convert one-time-password backups between GNOME Authenticator and Proton Authenticator. Everything runs in this page; nothing is uploaded.</p>
+  </header>
+
+  <div class="format-bar">
+    <div class="format-select">
+      <select id="srcFmt" aria-label="Input format">
+        <option value="detect" selected>Detect format</option>
+        <option value="gnome">GNOME Authenticator</option>
+        <option value="proton">Proton Authenticator</option>
+      </select>
+    </div>
+    <button id="swap" title="Swap direction" aria-label="Swap direction">&#8646;</button>
+    <div class="format-select">
+      <select id="dstFmt" aria-label="Output format">
+        <option value="proton" selected>Proton Authenticator</option>
+        <option value="gnome">GNOME Authenticator</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="panes">
+    <section class="pane" id="srcPane">
+      <div class="pane-head">
+        <span class="pane-title" id="srcTitle">Source</span>
+        <span class="hint">paste JSON or load a file</span>
+      </div>
+      <textarea id="src" spellcheck="false"
+        placeholder='Paste a backup here, e.g.
+
+[{"secret": "JBSW…", "label": "Example", "period": 30, "digits": 6,
+  "type": "OTP", "algorithm": "SHA1", "thumbnail": "Default",
+  "last_used": 0, "tags": []}]'></textarea>
+      <div class="pane-actions">
+        <button class="act" id="srcFile">Load file</button>
+        <button class="act" id="clear">Clear</button>
+        <input type="file" id="srcFileInput" accept=".json,application/json" hidden>
+      </div>
+    </section>
+
+    <section class="pane">
+      <div class="pane-head">
+        <span class="pane-title" id="dstTitle">Result</span>
+        <span class="hint" id="dstHint"></span>
+      </div>
+      <textarea id="dst" readonly spellcheck="false"
+        placeholder="The converted backup appears here."></textarea>
+      <div class="pane-actions">
+        <button class="act primary" id="translate">Translate</button>
+        <button class="act" id="copy">Copy</button>
+        <button class="act" id="download">Download .json</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <details class="notes">
+    <summary>How the conversion works</summary>
+    <p>GNOME entries carry the fields directly (<code>secret</code>, <code>label</code>, <code>period</code>, <code>digits</code>, <code>algorithm</code>, <code>tags</code>). Proton entries wrap an <code>otpauth://</code> URI inside <code>content.uri</code>, so the converter parses and rebuilds those URIs.</p>
+    <p>Secrets are normalized on both sides: Instagram-style <code>+</code> chunk separators (as they appear in Proton URIs like <code>7NR2+QTUT+EZNC…</code>) are stripped, since base32 has no plus sign and authenticators ignore it. Issuer names become GNOME <code>tags</code> going one way, and the <code>issuer</code> URI parameter going the other. A <code>+</code> in any other URI parameter is treated as a space, per form encoding.</p>
+    <p>HOTP entries are converted with their counter. Proton entry IDs are regenerated as fresh UUIDs; <code>note</code>, <code>thumbnail</code> and <code>last_used</code> get default values, since the formats don't share them.</p>
+  </details>
+</div>
+
+<script>
+/*CORE-START*/
+(function () {
+  const TOTPNAMES = { totp: "Totp", hotp: "Hotp" };
+
+  function b32Clean(secret) {
+    // Strip Instagram-style "+" chunk separators and whitespace; keep case.
+    return String(secret).replace(/[+\s]/g, "");
+  }
+
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : ((r & 0x3) | 0x8)).toString(16);
+    });
+  }
+
+  // Parse an otpauth URI. "+" in the secret is a literal chunk separator;
+  // "+" in every other parameter is form-encoded space.
+  function parseOtpauth(uri) {
+    const m = /^otpauth:\/\/(totp|hotp)\/([^?]*)\?(.*)$/i.exec(String(uri).trim());
+    if (!m) throw new Error("not an otpauth URI: " + String(uri).slice(0, 40));
+    const type = m[1].toLowerCase();
+    let label = "";
+    try { label = decodeURIComponent(m[2]); } catch (e) { label = m[2]; }
+
+    const params = {};
+    m[3].split("&").forEach(function (pair) {
+      if (!pair) return;
+      const eq = pair.indexOf("=");
+      if (eq < 0) return;
+      const key = pair.slice(0, eq);
+      let val = pair.slice(eq + 1);
+      try {
+        // form encoding: a raw "+" is a space (a literal plus arrives as %2B)
+        val = decodeURIComponent(val.replace(/\+/g, " "));
+      } catch (e) { /* keep raw */ }
+      params[key.toLowerCase()] = val;
+    });
+
+    // Split "Issuer:account" label form when the issuer parameter is absent.
+    let issuer = params.issuer || "";
+    if (label.indexOf(":") > 0) {
+      const parts = label.split(":");
+      const maybe = parts[0].trim();
+      const rest = parts.slice(1).join(":").trim();
+      if (!issuer && maybe) issuer = maybe;
+      label = rest || label;
+    }
+
+    const entry = {
+      kind: type,
+      label: label,
+      issuer: issuer,
+      secret: b32Clean(params.secret || ""),
+      algorithm: (params.algorithm || "SHA1").toUpperCase(),
+      digits: parseInt(params.digits, 10) || 6,
+      period: parseInt(params.period, 10) || 30,
+      counter: params.counter !== undefined ? parseInt(params.counter, 10) || 0 : undefined
+    };
+    if (!entry.secret) throw new Error("otpauth URI has no secret");
+    return entry;
+  }
+
+  function buildOtpauth(entry) {
+    let uri = "otpauth://" + entry.kind + "/" + encodeURIComponent(entry.label);
+    const q = [];
+    q.push("secret=" + entry.secret);
+    if (entry.issuer) q.push("issuer=" + encodeURIComponent(entry.issuer));
+    q.push("algorithm=" + entry.algorithm);
+    q.push("digits=" + entry.digits);
+    if (entry.kind === "totp") {
+      q.push("period=" + entry.period);
+    } else {
+      q.push("counter=" + (entry.counter || 0));
+    }
+    return uri + "?" + q.join("&");
+  }
+
+  // ---- GNOME Authenticator: JSON array of flat entries ----
+  function parseGNOME(text) {
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error("expected a JSON array of entries");
+    return data.map(function (item) {
+      if (!item || typeof item.secret !== "string" || !item.secret) {
+        throw new Error("GNOME entry is missing a secret");
+      }
+      return {
+        kind: (item.type === "HOTP" || item.type === "hotp") ? "hotp" : "totp",
+        label: item.label || "",
+        issuer: Array.isArray(item.tags) && item.tags.length ? item.tags[0] : "",
+        secret: b32Clean(item.secret),
+        algorithm: (item.algorithm || "SHA1").toUpperCase(),
+        digits: item.digits || 6,
+        period: item.period || 30,
+        counter: item.counter !== undefined ? item.counter : undefined
+      };
+    });
+  }
+
+  function toGNOME(entries) {
+    return JSON.stringify(entries.map(function (entry) {
+      const out = {
+        secret: entry.secret,
+        label: entry.label || entry.issuer || "",
+        period: entry.kind === "hotp" ? undefined : entry.period,
+        digits: entry.digits,
+        type: entry.kind === "hotp" ? "HOTP" : "OTP",
+        algorithm: entry.algorithm,
+        thumbnail: "Default",
+        last_used: 0,
+        tags: entry.issuer ? [entry.issuer] : []
+      };
+      if (entry.kind === "hotp") out.counter = entry.counter || 0;
+      return out;
+    }), null, 2) + "\n";
+  }
+
+  // ---- Proton Authenticator: {version, entries:[{id, content:{uri,...}}]} ----
+  function parseProton(text) {
+    const data = JSON.parse(text);
+    const list = data && data.entries;
+    if (!Array.isArray(list)) throw new Error('expected an object with an "entries" array');
+    return list.map(function (item) {
+      const c = item && item.content;
+      if (!c || typeof c.uri !== "string") throw new Error('Proton entry is missing content.uri');
+      const entry = parseOtpauth(c.uri);
+      entry.name = c.name || entry.label;
+      entry.note = item.note !== undefined ? item.note : null;
+      return entry;
+    });
+  }
+
+  function toProton(entries) {
+    return JSON.stringify({
+      version: 1,
+      entries: entries.map(function (entry) {
+        return {
+          id: uuid(),
+          content: {
+            uri: buildOtpauth(entry),
+            entry_type: TOTPNAMES[entry.kind] || "Totp",
+            name: entry.name || entry.label || entry.issuer || ""
+          },
+          note: entry.note !== undefined ? entry.note : null
+        };
+      })
+    }, null, 2);
+  }
+
+  // ---- format detection and dispatch ----
+  function detectFormat(text) {
+    const trimmed = text.trim();
+    if (trimmed.charAt(0) === "[") return "gnome";
+    let data;
+    try { data = JSON.parse(trimmed); } catch (e) { throw new Error("input is not valid JSON"); }
+    if (data && Array.isArray(data.entries)) return "proton";
+    if (Array.isArray(data)) return "gnome";
+    throw new Error("input does not look like a GNOME or Proton backup");
+  }
+
+  function convert(text, srcFmt, dstFmt) {
+    const src = srcFmt === "detect" ? detectFormat(text) : srcFmt;
+    if (src === dstFmt) {
+      // Same format in and out: normalize through the internal model anyway,
+      // so secrets get cleaned and output is consistently pretty-printed.
+      const entries = src === "gnome" ? parseGNOME(text) : parseProton(text);
+      return { text: src === "gnome" ? toGNOME(entries) : toProton(entries), src: src, count: entries.length };
+    }
+    const parse = src === "gnome" ? parseGNOME : parseProton;
+    const render = dstFmt === "gnome" ? toGNOME : toProton;
+    const entries = parse(text);
+    return { text: render(entries), src: src, count: entries.length };
+  }
+
+  window.TOTPTranslator = {
+    convert: convert,
+    detectFormat: detectFormat,
+    parseOtpauth: parseOtpauth,
+    buildOtpauth: buildOtpauth
+  };
+})();
+/*CORE-END*/
+
+(function () {
+  const FMT_LABEL = { gnome: "GNOME Authenticator", proton: "Proton Authenticator" };
+  const srcEl = document.getElementById("src");
+  const dstEl = document.getElementById("dst");
+  const srcFmtEl = document.getElementById("srcFmt");
+  const dstFmtEl = document.getElementById("dstFmt");
+  const statusEl = document.getElementById("status");
+  const srcPane = document.getElementById("srcPane");
+  const dstTitle = document.getElementById("dstTitle");
+  const dstHint = document.getElementById("dstHint");
+  const srcTitle = document.getElementById("srcTitle");
+  let lastResult = "";
+  let lastName = "";
+
+  function setStatus(kind, msg, names) {
+    statusEl.className = kind;
+    statusEl.innerHTML = msg + (names ? ' <span class="names">' + names + "</span>" : "");
+  }
+
+  function run() {
+    const text = srcEl.value;
+    srcPane.classList.remove("is-error");
+    if (!text.trim()) {
+      dstEl.value = "";
+      dstHint.textContent = "";
+      setStatus("", "");
+      return;
+    }
+    try {
+      let s = srcFmtEl.value;
+      let d = dstFmtEl.value;
+      let detected = false;
+      if (s === "detect") {
+        s = window.TOTPTranslator.detectFormat(text);
+        detected = true;
+        if (s === d) {
+          // Detected format matches the output format; flip the output so the
+          // result is visibly the other format instead of a normalized copy.
+          d = s === "gnome" ? "proton" : "gnome";
+          dstFmtEl.value = d;
+        }
+      }
+      const res = window.TOTPTranslator.convert(text, s, d);
+      dstEl.value = res.text;
+      lastResult = res.text;
+      lastName = "converted-" + s + "-to-" + d + ".json";
+      dstTitle.textContent = FMT_LABEL[d];
+      srcTitle.textContent = FMT_LABEL[s];
+      dstHint.textContent = res.count + (res.count === 1 ? " entry" : " entries");
+      const labelList = previewNames(res.text, d);
+      const msg = (detected ? "Detected " + FMT_LABEL[s] + "; converted " : "Converted ") +
+        res.count + (res.count === 1 ? " entry" : " entries") + " \u2192 " + FMT_LABEL[d] + ".";
+      setStatus("ok", msg, labelList);
+    } catch (err) {
+      dstEl.value = "";
+      lastResult = "";
+      srcPane.classList.add("is-error");
+      setStatus("err", "Couldn't convert: " + err.message);
+    }
+  }
+
+  function previewNames(json, fmt) {
+    try {
+      const data = JSON.parse(json);
+      const list = fmt === "proton" ? data.entries : data;
+      const names = list.slice(0, 5).map(function (e) {
+        return fmt === "proton" ? (e.content && e.content.name) : e.label;
+      }).filter(Boolean);
+      const more = list.length > 5 ? " \u2026" : "";
+      return names.join(", ") + more;
+    } catch (e) { return ""; }
+  }
+
+  // auto-run with a short debounce
+  let timer = null;
+  srcEl.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(run, 300);
+  });
+  srcFmtEl.addEventListener("change", run);
+  dstFmtEl.addEventListener("change", function () {
+    if (dstFmtEl.value === srcFmtEl.value && srcFmtEl.value !== "detect") {
+      // keep them different, like the swap would
+      srcFmtEl.value = dstFmtEl.value === "gnome" ? "proton" : "gnome";
+    }
+    run();
+  });
+
+  document.getElementById("translate").addEventListener("click", function () {
+    clearTimeout(timer);
+    run();
+  });
+
+  document.getElementById("swap").addEventListener("click", function () {
+    this.classList.toggle("spun");
+    const s = srcFmtEl.value, d = dstFmtEl.value;
+    srcFmtEl.value = d === "detect" ? "detect" : d;
+    dstFmtEl.value = s === "detect" ? (d === "gnome" ? "proton" : "gnome") : s;
+    if (dstEl.value) {
+      srcEl.value = dstEl.value;
+      dstEl.value = "";
+    }
+    run();
+  });
+
+  document.getElementById("clear").addEventListener("click", function () {
+    srcEl.value = "";
+    dstEl.value = "";
+    srcPane.classList.remove("is-error");
+    setStatus("", "");
+    srcEl.focus();
+  });
+
+  document.getElementById("srcFile").addEventListener("click", function () {
+    document.getElementById("srcFileInput").click();
+  });
+  document.getElementById("srcFileInput").addEventListener("change", function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      srcEl.value = String(reader.result);
+      run();
+    };
+    reader.readAsText(file);
+    this.value = "";
+  });
+
+  document.getElementById("copy").addEventListener("click", function () {
+    if (!dstEl.value) return;
+    const btn = this;
+    const done = function (ok) {
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(dstEl.value).then(function () { done(true); }, function () { done(fallbackCopy()); });
+    } else {
+      done(fallbackCopy());
+    }
+  });
+  function fallbackCopy() {
+    dstEl.removeAttribute("readonly");
+    dstEl.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    dstEl.setAttribute("readonly", "");
+    window.getSelection().removeAllRanges();
+    return ok;
+  }
+
+  document.getElementById("download").addEventListener("click", function () {
+    if (!lastResult) return;
+    const blob = new Blob([lastResult], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = lastName || "converted.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  });
+
+  // re-run once format dropdowns settle on load
+  run();
+})();
+</script>
+</body>
+</html>
