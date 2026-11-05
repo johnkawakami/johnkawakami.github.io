@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Format Translator · JSON ⇄ PHP</title>
+<style>
+  :root{
+    --ink:#20242e; --sub:#69707d; --line:#e3e6ea; --paper:#ffffff;
+    --accent:#0e7c66; --accent-soft:#e5f3f0;
+    --out-bg:#151a23; --out-ink:#c7cdd8; --out-line:#252c3a;
+    --err:#b3261e; --err-bg:#fdecea;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--paper);
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 20px 40px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .mark{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:8px;background:var(--accent);
+    color:#fff;font-size:18px;flex:none;
+  }
+  h1{font-size:19px;font-weight:650;margin:0;letter-spacing:-0.01em}
+  .pair{margin-left:auto;font-size:13px;color:var(--sub);
+    border:1px solid var(--line);border-radius:999px;padding:4px 12px;white-space:nowrap}
+
+  .bar{display:grid;grid-template-columns:1fr 52px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+  .side{display:flex;gap:8px;align-items:center;min-width:0}
+  .selwrap{position:relative;display:inline-flex;min-width:150px}
+  .selwrap::after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    color:var(--sub);pointer-events:none;font-size:12px}
+  select{
+    appearance:none;-webkit-appearance:none;width:100%;
+    font:inherit;font-size:14px;color:var(--ink);
+    padding:8px 30px 8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;
+    cursor:pointer;
+  }
+  select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .chip{font-size:12px;color:var(--accent);background:var(--accent-soft);
+    border-radius:999px;padding:3px 10px;white-space:nowrap}
+  .chip.hidden{display:none}
+  #swap{
+    width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;
+    font-size:19px;color:var(--accent);cursor:pointer;justify-self:center;
+    transition:border-color .15s, background .15s;
+  }
+  #swap:hover{border-color:var(--accent);background:var(--accent-soft)}
+  #swap:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  main{display:grid;grid-template-columns:1fr 52px 1fr;gap:10px}
+  @media (max-width:860px){
+    main,.bar{grid-template-columns:1fr}
+    .bar{gap:8px}
+    #swap{display:none}
+    main{grid-template-columns:1fr}
+  }
+  .pane{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .pane textarea,.pane pre{
+    font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    margin:0;padding:14px;height:clamp(320px,55vh,560px);width:100%;
+    white-space:pre;overflow:auto;border:0;tab-size:4;
+  }
+  .pane textarea{resize:none;color:var(--ink);background:#fff}
+  .pane textarea:focus-visible{outline:none}
+  .pane:focus-within{border-color:var(--accent)}
+  .pane.out{background:var(--out-bg);border-color:var(--out-line)}
+  .pane.out pre{color:var(--out-ink)}
+  .dim{color:#5b6472}
+  .err{border-top:1px dashed var(--line);background:var(--err-bg);color:var(--err);
+    font-size:13px;padding:8px 14px}
+  .err.hidden{display:none}
+  #copy{
+    position:absolute;top:10px;right:10px;font-size:12px;font-family:inherit;
+    color:#dfe4ec;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    border-radius:6px;padding:4px 10px;cursor:pointer;
+  }
+  #copy:hover{background:rgba(255,255,255,.16)}
+  #copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* syntax colors (dark pane) */
+  .s{color:#9ece6a} .n{color:#ff9e64} .k{color:#7aa2f7} .c{color:#565f78} .p{color:#e0af68}
+
+  footer{margin-top:14px;color:var(--sub);font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<meta name="ai-disclosure" content="ai-autonomous" ai-model="GLM-5.3-Flash" ai-provider="Thaura"><meta name="generator" content="Thaura (GLM-5.3-Flash)"></head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="mark">⇄</span>
+    <h1>Format Translator</h1>
+    <span class="pair" id="pair">JSON → PHP</span>
+  </header>
+
+  <div class="bar">
+    <div class="side">
+      <span class="selwrap"><select id="srcSel" aria-label="Source format"></select></span>
+      <span class="chip hidden" id="detected"></span>
+    </div>
+    <button id="swap" title="Swap direction" aria-label="Swap source and target">⇄</button>
+    <div class="side">
+      <span class="selwrap"><select id="dstSel" aria-label="Target format"></select></span>
+    </div>
+  </div>
+
+  <main>
+    <section class="pane src">
+      <textarea id="src" spellcheck="false" autocapitalize="off" aria-label="Source text"></textarea>
+      <div class="err hidden" id="err"></div>
+    </section>
+    <section class="pane out">
+      <pre id="out" aria-label="Translated output"><span class="dim">Output appears here.</span></pre>
+      <button id="copy">Copy</button>
+    </section>
+  </main>
+
+  <footer>Conversions run entirely in your browser — nothing is sent anywhere.</footer>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const srcEl=$('src'), outEl=$('out'), errEl=$('err'),
+      srcSel=$('srcSel'), dstSel=$('dstSel'),
+      detectedEl=$('detected'), pairEl=$('pair');
+let lastOut='';
+
+const LABELS={auto:'Auto-detect',json:'JSON',php:'PHP array',yaml:'YAML',xml:'XML',
+              python:'Python dict',ruby:'Ruby hash',elm:'Elm decoder',csv:'CSV'};
+const label=f=>LABELS[f]||f;
+
+srcSel.innerHTML=[['auto','Auto-detect'],['json','JSON'],['php','PHP array'],['yaml','YAML'],['xml','XML']]
+  .map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+dstSel.innerHTML=[['json','JSON'],['php','PHP array'],['yaml','YAML'],['xml','XML'],
+                  ['python','Python dict'],['ruby','Ruby hash'],['elm','Elm decoder'],['csv','CSV']]
+  .map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+srcSel.value='auto';
+dstSel.value='php';
+
+/* ================= PHP parser ================= */
+function phpParse(src){
+  const n=src.length; let i=0;
+  function err(m){ throw new Error(m+' (at character '+i+')'); }
+  function ws(){
+    while(i<n){
+      const c=src[i];
+      if(c===' '||c==='\t'||c==='\n'||c==='\r'){i++;continue;}
+      if(c==='/'&&src[i+1]==='/'){while(i<n&&src[i]!=='\n')i++;continue;}
+      if(c==='#'){while(i<n&&src[i]!=='\n')i++;continue;}
+      if(c==='/'&&src[i+1]==='*'){i+=2;while(i<n&&!(src[i]==='*'&&src[i+1]==='/'))i++;i+=2;continue;}
+      break;
+    }
+  }
+  function unescDq(c){
+    const m={n:'\n',t:'\t',r:'\r','"':'"',"'":"'",'\\':'\\','$':'$',f:'\f',v:'\v',e:'',0:'\0'};
+    return m[c]!==undefined?m[c]:'\\'+c;
+  }
+  function parseString(q){
+    i++; let out='';
+    while(i<n&&src[i]!==q){
+      if(src[i]==='\\'){
+        i++;
+        if(q==="'"){ out+=(src[i]==="'"||src[i]==='\\')?src[i]:'\\'+src[i]; i++; }
+        else{ out+=unescDq(src[i]); i++; }
+      } else out+=src[i++];
+    }
+    if(src[i]!==q) err('unterminated string');
+    i++; return out;
+  }
+  function parseNumber(){
+    const m=/^[-+]?0x[0-9a-fA-F]+|^[-+]?\d+(\.\d+)?([eE][-+]?\d+)?/.exec(src.slice(i));
+    if(!m) err('bad number');
+    i+=m[0].length;
+    if(/^[-+]?0x/i.test(m[0])) return parseInt(m[0],16);
+    const f=parseFloat(m[0]);
+    return /[.eE]/.test(m[0])?f:parseInt(m[0],10);
+  }
+  function parseArray(close){
+    i++;
+    const pairs=[];
+    ws();
+    if(src[i]===close){i++;return {__pairs:pairs};}
+    for(;;){
+      ws();
+      let v=parseValue();
+      ws();
+      let key;
+      if(src[i]==='='){
+        if(src[i+1]!=='>') err("expected '=>'");
+        i+=2; key=v; ws(); v=parseValue();
+      }
+      pairs.push([key,v]);
+      ws();
+      if(src[i]===','){i++;ws();if(src[i]===close){i++;return {__pairs:pairs};}continue;}
+      if(src[i]===close){i++;return {__pairs:pairs};}
+      err("expected ',' or '"+close+"'");
+    }
+  }
+  function parseValue(){
+    ws();
+    const c=src[i];
+    if(c==='[') return parseArray(']');
+    if(/^array\b/i.test(src.slice(i,i+6))){
+      i+=5; ws();
+      if(src[i]!=='(') err("expected '(' after 'array'");
+      return parseArray(')');
+    }
+    if(c==='"'||c==="'") return parseString(c);
+    if(c==='-'||c==='+'||/[0-9]/.test(c)) return parseNumber();
+    if(/[A-Za-z_]/.test(c)){
+      const m=/^[A-Za-z_][A-Za-z0-9_]*/.exec(src.slice(i));
+      i+=m[0].length;
+      const l=m[0].toLowerCase();
+      if(l==='true')return true;
+      if(l==='false')return false;
+      if(l==='null')return null;
+      err("unexpected identifier '"+m[0]+"'");
+    }
+    if(c===undefined) err('unexpected end of input');
+    err("unexpected character '"+c+"'");
+  }
+  const v=parseValue();
+  ws();
+  return v;
+}
+function phpConvert(v){
+  if(v&&v.__pairs){
+    const pairs=v.__pairs.map(p=>[p[0],phpConvert(p[1])]);
+    const allInt=pairs.every(p=>typeof p[0]==='number'||p[0]===undefined);
+    if(allInt) return pairs.map(p=>p[1]);
+    const o={};
+    pairs.forEach((p,idx)=>{ o[p[0]===undefined?String(idx):String(p[0])]=p[1]; });
+    return o;
+  }
+  return v;
+}
+
+/* ================= YAML parse (block + flow subset) ================= */
+function yScalarParse(s){
+  if(s===''||s===undefined) return null;
+  if(/^"((?:[^"\\]|\\.)*)"$/.test(s)){ try{return JSON.parse(s);}catch(e){return s.slice(1,-1);} }
+  if(/^'((?:[^']|'')*)'$/.test(s)) return s.slice(1,-1).replace(/''/g,"'");
+  const low=s.toLowerCase();
+  if(low==='null'||low==='~') return null;
+  if(low==='true') return true;
+  if(low==='false') return false;
+  if(/^-?\d+$/.test(s)) return parseInt(s,10);
+  if(/^-?\d*\.\d+([eE][+-]?\d+)?$/.test(s)||/^-?\d+[eE][+-]?\d+$/.test(s)) return parseFloat(s);
+  return s;
+}
+function parseFlow(t){
+  let i=0;
+  function skipWs(){while(i<t.length&&/\s/.test(t[i]))i++;}
+  function flowScalar(){
+    skipWs();
+    if(t[i]==='"'||t[i]==="'"){
+      const q=t[i]; i++; let out='';
+      while(i<t.length&&t[i]!==q){
+        if(q==='"'&&t[i]==='\\'){out+=t[i+1];i+=2;}
+        else out+=t[i++];
+      }
+      if(t[i]!==q) throw new Error('unterminated string in flow');
+      i++;
+      return q==='"'?yScalarParse('"'+out+'"'):out.replace(/''/g,"'");
+    }
+    const m=/^[^,\]}:]+/.exec(t.slice(i));
+    if(!m) throw new Error('expected a value in flow');
+    i+=m[0].length;
+    return yScalarParse(m[0].trim());
+  }
+  function pf(){
+    skipWs();
+    const c=t[i];
+    if(c==='['){
+      i++; const a=[]; skipWs();
+      if(t[i]===']'){i++;return a;}
+      for(;;){
+        a.push(pf()); skipWs();
+        if(t[i]===','){i++;continue;}
+        if(t[i]===']'){i++;return a;}
+        throw new Error('bad flow sequence');
+      }
+    }
+    if(c==='{'){
+      i++; const o={}; skipWs();
+      if(t[i]==='}'){i++;return o;}
+      for(;;){
+        skipWs();
+        const key=flowScalar();
+        skipWs();
+        if(t[i]!==':') throw new Error("expected ':' in flow mapping");
+        i++;
+        o[String(key)]=pf(); skipWs();
+        if(t[i]===','){i++;continue;}
+        if(t[i]==='}'){i++;return o;}
+        throw new Error('bad flow mapping');
+      }
+    }
+    return flowScalar();
+  }
+  return pf();
+}
+function splitKey(t){
+  let inS=null;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(inS){ if(c===inS){ if(inS==="'"&&t[i+1]==="'"){i++;continue;} inS=null; } continue; }
+    if(c==='"'||c==="'"){inS=c;continue;}
+    if(c===':'&&(i===t.length-1||t[i+1]===' ')){
+      let key=t.slice(0,i).trim();
+      if(/^".*"$/.test(key)||/^'.*'$/.test(key)) key=yScalarParse(key);
+      return [key,t.slice(i+1).trim()];
+    }
+  }
+  return null;
+}
+function stripComment(t){
+  let inS=null;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(inS){ if(c===inS){ if(inS==="'"&&t[i+1]==="'"){i++;continue;} inS=null; } continue; }
+    if(c==='"'||c==="'"){inS=c;continue;}
+    if(c==='#'&&(i===0||t[i-1]===' ')) return t.slice(0,i).trim();
+  }
+  return t;
+}
+function yamlParse(src){
+  const lines=src.split('\n');
+  const items=[];
+  for(let ln=0;ln<lines.length;ln++){
+    const line=lines[ln];
+    if(/^\t/.test(line)||/^ +\t/.test(line)) throw new Error('tabs are not allowed in indentation (line '+(ln+1)+')');
+    const trimmed=line.trim();
+    if(!trimmed||trimmed[0]==='#'||trimmed==='---'||trimmed==='...') continue;
+    items.push({indent:/^ */.exec(line)[0].length,text:stripComment(trimmed),ln:ln+1});
+  }
+  if(!items.length) throw new Error('empty document');
+  let pos=0;
+  function parseBlock(minIndent){
+    if(pos>=items.length) return null;
+    const first=items[pos];
+    if(first.indent<minIndent) return null;
+    const ind=first.indent;
+    if(first.text==='-'||first.text.startsWith('- ')){
+      const arr=[];
+      while(pos<items.length&&items[pos].indent===ind&&(items[pos].text==='-'||items[pos].text.startsWith('- '))){
+        const t=items[pos].text.slice(1).trim();
+        pos++;
+        if(t===''){
+          arr.push(parseBlock(ind+1));
+        } else if(t[0]==='['||t[0]==='{'){
+          arr.push(parseFlow(t));
+        } else {
+          const kv=splitKey(t);
+          if(kv){
+            const obj={};
+            const keyCol=ind+2;
+            addPair(obj,kv,()=>parseBlock(keyCol+1));
+            while(pos<items.length&&items[pos].indent===keyCol){
+              const kv2=splitKey(items[pos].text);
+              if(!kv2) break;
+              pos++;
+              addPair(obj,kv2,()=>parseBlock(keyCol+1));
+            }
+            arr.push(obj);
+          } else {
+            arr.push(yScalarParse(t));
+          }
+        }
+      }
+      return arr;
+    }
+    if(first.text[0]==='{'||first.text[0]==='['){
+      pos++;
+      return parseFlow(first.text);
+    }
+    const kv0=splitKey(first.text);
+    if(!kv0){
+      if(items.length===1) return yScalarParse(first.text);
+      throw new Error('expected "key: value" (line '+first.ln+')');
+    }
+    const obj={};
+    while(pos<items.length&&items[pos].indent===ind){
+      const kv=splitKey(items[pos].text);
+      if(!kv) throw new Error('expected "key: value" (line '+items[pos].ln+')');
+      pos++;
+      const rest=kv[1];
+      if(rest===''){
+        if(pos<items.length&&items[pos].indent===ind&&(items[pos].text==='-'||items[pos].text.startsWith('- '))){
+          obj[kv[0]]=parseBlock(ind);
+        } else {
+          obj[kv[0]]=parseBlock(ind+1);
+        }
+      } else if(rest[0]==='['||rest[0]==='{'){
+        obj[kv[0]]=parseFlow(rest);
+      } else {
+        obj[kv[0]]=yScalarParse(rest);
+      }
+    }
+    return obj;
+  }
+  function addPair(obj,kv,nested){
+    const rest=kv[1];
+    if(rest===''){
+      obj[kv[0]]=nested();
+    } else if(rest[0]==='['||rest[0]==='{'){
+      obj[kv[0]]=parseFlow(rest);
+    } else {
+      obj[kv[0]]=yScalarParse(rest);
+    }
+  }
+  const v=parseBlock(0);
+  if(pos<items.length) throw new Error('unexpected content at line '+items[pos].ln+' (check indentation)');
+  return v;
+}
+
+/* ================= XML parse ================= */
+function xmlParse(src){
+  const doc=new DOMParser().parseFromString(src,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('not well-formed XML');
+  if(!doc.documentElement) throw new Error('no root element found');
+  return xmlToValue(doc.documentElement);
+}
+function coerceScalar(s){
+  const t=s.trim();
+  if(t==='') return s;
+  if(t==='true') return true;
+  if(t==='false') return false;
+  if(t==='null') return null;
+  if(/^-?\d+$/.test(t)) return parseInt(t,10);
+  if(/^-?\d*\.\d+([eE][+-]?\d+)?$/.test(t)) return parseFloat(t);
+  return s;
+}
+function xmlToValue(el){
+  const obj={};
+  for(const a of el.attributes) obj['@'+a.name]=coerceScalar(a.value);
+  const kids=[...el.children];
+  if(kids.length===0){
+    const txt=el.textContent.trim();
+    if(Object.keys(obj).length===0) return coerceScalar(txt);
+    if(txt!=='') obj['#text']=coerceScalar(txt);
+    return obj;
+  }
+  const seen={};
+  for(const k of kids){ (seen[k.tagName]=seen[k.tagName]||[]).push(k); }
+  for(const tag in seen){
+    const g=seen[tag];
+    obj[tag]=g.length>1?g.map(xmlToValue):xmlToValue(g[0]);
+  }
+  return obj;
+}
+
+/* ================= emitters ================= */
+function phpStr(s){ return "'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'"; }
+function phpEmit(v){ return phpVal(v,''); }
+function phpVal(v,ind){
+  if(v===null) return 'null';
+  if(typeof v==='string') return phpStr(v);
+  if(typeof v==='number') return String(v);
+  if(typeof v==='boolean') return v?'true':'false';
+  const inner=ind+'    ';
+  if(Array.isArray(v)){
+    if(!v.length) return '[]';
+    return '[\n'+v.map(x=>inner+phpVal(x,inner)+',').join('\n')+'\n'+ind+']';
+  }
+  const keys=Object.keys(v);
+  if(!keys.length) return '[]';
+  return '[\n'+keys.map(k=>{
+    const key=/^-?\d+$/.test(k)?k:phpStr(k);
+    return inner+key+' => '+phpVal(v[k],inner)+',';
+  }).join('\n')+'\n'+ind+']';
+}
+
+function yNeedsQuote(s){
+  if(s===''||/^\s|\s$/.test(s)||/[\n\r]/.test(s)) return true;
+  if(/^(?:-|\?)(\s|$)/.test(s)) return true;
+  if(/^[!&*\[{}\],|>@`"'%#]/.test(s)) return true;
+  if(/:(\s|$)/.test(s)||/\s#/.test(s)) return true;
+  if(s.trim()!==''&&!isNaN(Number(s))&&/^-?[\d.]+(e[+-]?\d+)?$/i.test(s.trim())) return true;
+  if(/^(true|false|null|~|yes|no|on|off)$/i.test(s)) return true;
+  return false;
+}
+function yScalar(v){
+  if(v===null) return 'null';
+  if(typeof v==='boolean') return v?'true':'false';
+  if(typeof v==='number') return String(v);
+  const s=String(v);
+  return yNeedsQuote(s)?JSON.stringify(s):s;
+}
+function yamlEmit(v){ return yVal(v,0); }
+function yVal(v,ind){
+  const pad='  '.repeat(ind);
+  if(v===null) return 'null';
+  if(typeof v!=='object') return yScalar(v);
+  if(Array.isArray(v)){
+    if(!v.length) return '[]';
+    return v.map(it=>{
+      if(it===null||typeof it!=='object') return pad+'- '+yScalar(it);
+      if(Array.isArray(it)){
+        if(!it.length) return pad+'- []';
+        return pad+'-\n'+yVal(it,ind+1);
+      }
+      const entries=Object.entries(it);
+      if(!entries.length) return pad+'- {}';
+      const inner=yVal(it,ind+1).split('\n');
+      const firstLine=inner[0].slice((ind+1)*2);
+      return pad+'- '+firstLine+(inner.length>1?'\n'+inner.slice(1).join('\n'):'');
+    }).join('\n');
+  }
+  const entries=Object.entries(v);
+  if(!entries.length) return '{}';
+  return entries.map(([k,val])=>{
+    const key=yScalar(k);
+    if(val===null||typeof val!=='object') return pad+key+': '+yScalar(val);
+    if(Array.isArray(val)&&!val.length) return pad+key+': []';
+    if(!Array.isArray(val)&&!Object.keys(val).length) return pad+key+': {}';
+    return pad+key+':\n'+yVal(val,ind+1);
+  }).join('\n');
+}
+
+function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function xmlTagSafe(k){
+  const s=String(k);
+  return (/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(s)&&!/^xml/i.test(s))?s:null;
+}
+function xmlEmit(v){ return xmlNode(v,'root',0); }
+function xmlNode(v,name,ind){
+  const pad='  '.repeat(ind);
+  const open=Array.isArray(v)?name:(xmlTagSafe(name)?name:'entry name="'+escXml(name)+'"');
+  const tag=open.split(' ')[0];
+  if(v===null||v===undefined) return pad+'<'+open+'/>';
+  if(typeof v!=='object'){
+    return v===''?pad+'<'+open+'></'+tag+'>':pad+'<'+open+'>'+escXml(v)+'</'+tag+'>';
+  }
+  if(Array.isArray(v)){
+    return v.map(it=>xmlNode(it,name,ind)).join('\n');
+  }
+  const entries=Object.entries(v);
+  if(!entries.length) return pad+'<'+open+'/>';
+  const lines=entries.map(([k,val])=>{
+    const key=xmlTagSafe(k);
+    const childName=key||'entry name="'+escXml(k)+'"';
+    const childTag=(key||'entry').split(' ')[0];
+    if(Array.isArray(val)){
+      return val.map(it=>xmlNode(it,key||k,ind+1)).join('\n');
+    }
+    return xmlNode(val,key||k,ind+1);
+  });
+  return pad+'<'+open+'>\n'+lines.join('\n')+'\n'+pad+'</'+tag+'>';
+}
+
+function pyStr(s){ return JSON.stringify(s); }
+function pythonEmit(v){ return pyVal(v,0); }
+function pyVal(v,ind){
+  const pad='    '.repeat(ind);
+  if(v===null) return 'None';
+  if(typeof v==='boolean') return v?'True':'False';
+  if(typeof v==='string') return pyStr(v);
+  if(typeof v==='number') return String(v);
+  const inner=pad+'    ';
+  if(Array.isArray(v)){
+    if(!v.length) return '[]';
+    return '[\n'+v.map(x=>inner+pyVal(x,ind+1)+',').join('\n')+'\n'+pad+']';
+  }
+  const keys=Object.keys(v);
+  if(!keys.length) return '{}';
+  return '{\n'+keys.map(k=>inner+pyStr(k)+': '+pyVal(v[k],ind+1)+',').join('\n')+'\n'+pad+'}';
+}
+function rubyStr(s){ return "'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"''")+"'"; }
+function rubyEmit(v){ return rbVal(v,0); }
+function rbVal(v,ind){
+  const pad='  '.repeat(ind);
+  if(v===null) return 'nil';
+  if(typeof v==='boolean') return v?'true':'false';
+  if(typeof v==='string') return rubyStr(v);
+  if(typeof v==='number') return String(v);
+  const inner=pad+'  ';
+  if(Array.isArray(v)){
+    if(!v.length) return '[]';
+    return '[\n'+v.map(x=>inner+rbVal(x,ind+1)+',').join('\n')+'\n'+pad+']';
+  }
+  const keys=Object.keys(v);
+  if(!keys.length) return '{}';
+  return '{\n'+keys.map(k=>inner+rubyStr(k)+' => '+rbVal(v[k],ind+1)+',').join('\n')+'\n'+pad+'}';
+}
+function csvEmit(v){
+  if(!Array.isArray(v)) throw new Error('CSV output needs a top-level array of objects');
+  const rows=v.filter(r=>r!==null&&typeof r==='object'&&!Array.isArray(r));
+  if(!rows.length) throw new Error('CSV needs a non-empty array of objects');
+  const headers=[]; const seen=new Set();
+  for(const r of rows) for(const k of Object.keys(r)){ if(!seen.has(k)){seen.add(k);headers.push(k);} }
+  const cell=x=>{
+    if(x===null||x===undefined) return '';
+    if(typeof x==='object') x=JSON.stringify(x);
+    const s=String(x);
+    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+  };
+  return [headers.map(cell).join(','),
+          ...rows.map(r=>headers.map(h=>cell(r[h])).join(','))].join('\n');
+}
+
+/* ================= Elm decoder generator ================= */
+function elmEmit(v){
+  const blocks=[]; const blockNames={}; let needAndMap=false;
+  const RESERVED=new Set(['case','of','let','in','if','then','else','type','alias',
+                          'module','import','exposing','where','port','infix','left','right','nonassoc']);
+  function pascal(s){
+    const parts=String(s).split(/[^A-Za-z0-9]+/).filter(Boolean);
+    let out=parts.map(p=>p[0].toUpperCase()+p.slice(1).toLowerCase()).join('');
+    if(!out) out='Field';
+    if(/^[0-9]/.test(out)) out='N'+out;
+    return out;
+  }
+  function camel(s){
+    const parts=String(s).split(/[^A-Za-z0-9]+/).filter(Boolean);
+    let out=parts.map((p,i)=>i===0?p.toLowerCase():p[0].toUpperCase()+p.slice(1).toLowerCase()).join('');
+    if(!out) out='field';
+    if(/^[0-9]/.test(out)) out='f'+out;
+    if(RESERVED.has(out)) out=out+'_';
+    return out;
+  }
+  function indentAll(s,n){ const pad=' '.repeat(n); return s.split('\n').map(l=>l?pad+l:l).join('\n'); }
+  function shapeSig(x){
+    return JSON.stringify(x,(k,val)=>{
+      if(typeof val==='number') return Number.isInteger(val)?'(int)':'(float)';
+      if(typeof val==='string') return '(str)';
+      if(typeof val==='boolean') return '(bool)';
+      if(val===null) return '(null)';
+      return val;
+    });
+  }
+  function build(v,path,required){
+    if(v===null||v===undefined) return {type:'Json.Decode.Value',dec:'Json.Decode.value'};
+    if(typeof v==='string') return {type:'String',dec:'Json.Decode.string'};
+    if(typeof v==='number') return Number.isInteger(v)?{type:'Int',dec:'Json.Decode.int'}:{type:'Float',dec:'Json.Decode.float'};
+    if(typeof v==='boolean') return {type:'Bool',dec:'Json.Decode.bool'};
+    if(Array.isArray(v)){
+      if(!v.length) return {type:'(List Json.Decode.Value)',dec:'(Json.Decode.list Json.Decode.value)'};
+      const sig0=shapeSig(v[0]);
+      if(v.every(x=>x!==null&&typeof x==='object'&&!Array.isArray(x)&&shapeSig(x)===sig0)){
+        const fields=mergeFields(v,path,required);
+        return objectFrom(fields,path);
+      }
+      const inner=build(v[0],path,required);
+      return {type:'(List '+inner.type+')',dec:'(Json.Decode.list '+inner.dec+')'};
+    }
+    const fields=mergeFields([v],path,required);
+    return objectFrom(fields,path);
+  }
+  function mergeFields(arr,path,required){
+    const map=new Map();
+    for(const o of arr){
+      for(const k of Object.keys(o)){
+        const e=map.get(k)||{key:k,samples:[],present:0,nonNull:0};
+        e.samples.push(o[k]);
+        e.present++;
+        if(o[k]!==null&&o[k]!==undefined) e.nonNull++;
+        map.set(k,e);
+      }
+    }
+    return [...map.values()].map(e=>{
+      const childRequired=required&&e.present===arr.length&&e.nonNull===arr.length;
+      const sample=e.samples.find(x=>x!==null&&x!==undefined);
+      const b=build(sample!==undefined?sample:null,path.concat(e.key),childRequired);
+      return {key:e.key,elm:camel(e.key),type:b.type,dec:b.dec,required:childRequired};
+    });
+  }
+  function mapExpr(name,fields){
+    const args=fields.map(f=>`(Json.Decode.field "${f.key}" ${f.dec})`);
+    if(!fields.length) return 'Json.Decode.succeed {}';
+    if(fields.length===1) return 'Json.Decode.map '+name+'\n'+indentAll(args[0],4);
+    if(fields.length<=8){
+      return `Json.Decode.map${fields.length} ${name}\n`+args.map(a=>indentAll(a,4)).join('\n');
+    }
+    needAndMap=true;
+    const lambda='(\\'+fields.map(f=>f.elm).join(' ')+' -> { '
+      +fields.map(f=>f.elm+' = '+f.elm).join(', ')+' })';
+    return 'Json.Decode.succeed\n'+indentAll(lambda,4)+'\n'
+      +args.map(a=>indentAll('|> andMap '+a,4)).join('\n');
+  }
+  function objectFrom(fields,path){
+    let name=pascal(path[path.length-1]||'Root');
+    let i=2; while(blockNames[name]) name=pascal(path[path.length-1]||'Root')+i++;
+    blockNames[name]=true;
+    const eff=fields.map(f=>f.required?f:{...f,type:'(Maybe '+f.type+')',dec:'(Json.Decode.maybe '+f.dec+')'});
+    const decName=camel(name)+'Decoder';
+    const body=mapExpr(name,eff);
+    const alias=eff.length
+      ? 'type alias '+name+' =\n'+eff.map((f,idx)=>'    '+(idx===0?'{ ':', ')+f.elm+' : '+f.type).join('\n')+'\n    }'
+      : 'type alias '+name+' =\n    {}';
+    const decl=decName+' : Json.Decode.Decoder '+name+'\n'+decName+' =\n'+indentAll(body,4);
+    blocks.push({name,alias,decl});
+    return {type:name,dec:decName};
+  }
+  const rootObj=v!==null&&typeof v==='object'&&!Array.isArray(v);
+  let rootType,rootDec,hasRootBlock=false;
+  if(rootObj){
+    const o=objectFrom(mergeFields([v],['root'],true),['root']);
+    rootType=o.type; rootDec=o.dec; hasRootBlock=true;
+  } else {
+    const b=build(v,['root'],true);
+    rootType=b.type; rootDec=b.dec;
+  }
+  let out='{-- Generated by Format Translator. Uses only the core elm/json package. --}\n\nimport Json.Decode\n';
+  if(needAndMap){
+    out+='\nandMap : Json.Decode.Decoder (a -> b) -> Json.Decode.Decoder a -> Json.Decode.Decoder b\nandMap =\n    Json.Decode.map2 (|>)\n';
+  }
+  for(const b of blocks){
+    out+='\n'+b.alias+'\n\n'+b.decl+'\n';
+  }
+  if(!hasRootBlock){
+    out+='\nrootDecoder : Json.Decode.Decoder '+rootType+'\nrootDecoder =\n'+indentAll(rootDec,4)+'\n';
+  }
+  return out.trimEnd()+'\n';
+}
+
+/* ================= detect / translate ================= */
+function detect(text){
+  const t=text.trim();
+  if(t[0]==='<') return {fmt:'xml'};
+  try{ JSON.parse(t); return {fmt:'json'}; }catch(e){}
+  const phpLike=/=>/.test(t)||/^\s*array\(/i.test(t)||/^\s*\[\s*['"]/.test(t);
+  if(phpLike){
+    try{ phpParse(t); return {fmt:'php'}; }
+    catch(e){ return {fmt:'php',err:'PHP array: '+e.message}; }
+  }
+  try{ phpParse(t); return {fmt:'php'}; }catch(e){}
+  try{ yamlParse(t); return {fmt:'yaml'}; }
+  catch(e){ return {fmt:'yaml',err:'YAML: '+e.message}; }
+}
+function parseAs(fmt,text){
+  if(fmt==='json') return JSON.parse(text);
+  if(fmt==='php') return phpConvert(phpParse(text));
+  if(fmt==='yaml') return yamlParse(text);
+  if(fmt==='xml') return xmlParse(text);
+  throw new Error('this format cannot be used as a source');
+}
+function emitAs(fmt,val){
+  if(fmt==='json') return JSON.stringify(val,null,2);
+  if(fmt==='php') return phpEmit(val);
+  if(fmt==='yaml') return yamlEmit(val);
+  if(fmt==='xml') return xmlEmit(val);
+  if(fmt==='python') return pythonEmit(val);
+  if(fmt==='ruby') return rubyEmit(val);
+  if(fmt==='elm') return elmEmit(val);
+  if(fmt==='csv') return csvEmit(val);
+  throw new Error('unknown target format');
+}
+function highlight(code){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const re=/("(?:[^"\\\n]|\\.)*"?)|('(?:[^'\\\n]|\\.)*'?)|(<\/?[A-Za-z][^>\n]*>)|(#[^\n]*|\/\/[^\n]*)|\b(true|false|null|True|False|None|nil|array|andMap|import|type|alias|Json\.Decode)\b|(\b\d+(?:\.\d+)?\b)|(=>|::)/g;
+  let out='',last=0,m;
+  while((m=re.exec(code))){
+    out+=esc(code.slice(last,m.index));
+    if(m[1]||m[2]) out+='<span class="s">'+esc(m[0])+'</span>';
+    else if(m[3]) out+='<span class="p">'+esc(m[0])+'</span>';
+    else if(m[4]) out+='<span class="c">'+esc(m[0])+'</span>';
+    else if(m[5]) out+='<span class="k">'+esc(m[0])+'</span>';
+    else if(m[6]) out+='<span class="n">'+esc(m[0])+'</span>';
+    else out+='<span class="k">'+esc(m[0])+'</span>';
+    last=m.index+m[0].length;
+  }
+  out+=esc(code.slice(last));
+  return out;
+}
+function translate(){
+  errEl.classList.add('hidden');
+  detectedEl.classList.add('hidden');
+  const text=srcEl.value;
+  pairEl.textContent=label(srcSel.value==='auto'?'json':srcSel.value)+' → '+label(dstSel.value);
+  if(!text.trim()){
+    lastOut='';
+    outEl.innerHTML='<span class="dim">Output appears here.</span>';
+    return;
+  }
+  try{
+    let fmt=srcSel.value;
+    if(fmt==='auto'){
+      const d=detect(text);
+      fmt=d.fmt;
+      detectedEl.textContent='Detected: '+label(d.fmt);
+      detectedEl.classList.remove('hidden');
+      if(d.err) throw new Error(d.err);
+    }
+    const val=parseAs(fmt,text);
+    const out=emitAs(dstSel.value,val);
+    lastOut=out;
+    outEl.innerHTML=highlight(out);
+  }catch(e){
+    lastOut='';
+    outEl.innerHTML='<span class="dim">—</span>';
+    errEl.textContent=e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+/* ================= UI wiring ================= */
+let timer=null;
+srcEl.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(translate,250); });
+srcSel.addEventListener('change',translate);
+dstSel.addEventListener('change',translate);
+$('swap').addEventListener('click',()=>{
+  const s=srcSel.value,d=dstSel.value;
+  srcSel.value=d; dstSel.value=s;
+  if(lastOut) srcEl.value=lastOut;
+  translate();
+});
+$('copy').addEventListener('click',async()=>{
+  if(!lastOut) return;
+  try{
+    await navigator.clipboard.writeText(lastOut);
+    const b=$('copy'); b.textContent='Copied ✓';
+    setTimeout(()=>{b.textContent='Copy';},1200);
+  }catch(e){}
+});
+
+srcEl.value=[
+'{',
+'  "site": "LA Indymedia",',
+'  "language": "en",',
+'  "features": [',
+'    { "id": 4211, "title": "Rent strike grows", "published": true,  "author": null },',
+'    { "id": 4212, "title": "Strike wins",      "published": false, "author": "jm" }',
+'  ],',
+'  "tags": ["housing", "labor"],',
+'  "stats": { "views": 15230, "rating": 4.5 }',
+'}'
+].join('\n');
+translate();
+</script>
+</body>
+</html>
