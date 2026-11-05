@@ -1036,6 +1036,7 @@ function addSampleDoc() {
   docs.push(newSample);
   currentId = newSample.id;
   saveDocs();
+  openDoc(newSample.id);
 }
 /* First run: seed the library with the sample document. */
 if (!docs.length) {
