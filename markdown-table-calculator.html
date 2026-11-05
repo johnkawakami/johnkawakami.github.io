@@ -1032,7 +1032,7 @@ function deleteDoc(id) {
 
 function addSampleDoc() {
   var newSample = { id: String(Date.now()), content: SAMPLE, updated: Date.now() };
-  docs.append(newSample);
+  docs.push(newSample);
   currentId = newSample.id;
   saveDocs();
 }
