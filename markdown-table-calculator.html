@@ -293,6 +293,7 @@
       aria-controls="filesPanel">Files</button>
     <div id="filesPanel" class="files-panel" hidden>
       <button id="newDoc" type="button" class="files-new">+ New document</button>
+      <button id="newExample" type="button" class="files-new">+ New example</button>
       <ul id="filesList"></ul>
     </div>
   </div>
@@ -922,7 +923,8 @@ var currentId = storeGet(STORE_CURRENT);
 var filesBtn = document.getElementById('filesBtn');
 var filesPanel = document.getElementById('filesPanel');
 var filesList = document.getElementById('filesList');
-
+var addExample = document.getElementById('addExample');
+  
 function persistCurrent() {
   if (!currentId) return;
   for (var i = 0; i < docs.length; i++) {
@@ -992,6 +994,10 @@ document.getElementById('newDoc').addEventListener('click', function () {
   closeFiles();
   newDoc();
 });
+newExample.addEventListener('click', function () {
+  closeFiles();
+  addSampleDoc();
+});
 
 function openDoc(id) {
   currentId = id;
@@ -1024,11 +1030,16 @@ function deleteDoc(id) {
   renderFiles();
 }
 
+function addSampleDoc() {
+  var newSample = { id: String(Date.now()), content: SAMPLE, updated: Date.now() };
+  docs.append(newSample);
+  currentId = newSample.id;
+  saveDocs();
+}
 /* First run: seed the library with the sample document. */
 if (!docs.length) {
-  docs = [{ id: String(Date.now()), content: SAMPLE, updated: Date.now() }];
-  currentId = docs[0].id;
-  saveDocs();
+  docs = [];
+  addSampleDoc();
 }
 var known = docs.some(function (d) { return d.id === currentId; });
 openDoc(known ? currentId : docs[0].id);
