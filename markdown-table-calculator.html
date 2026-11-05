@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally: markdown tables that compute</title>
+<style>
+  :root {
+    --paper: #F1F3EF;
+    --panel: #FCFCFA;
+    --ink: #22302B;
+    --muted: #6B7A72;
+    --line: #DCE2DC;
+    --line-strong: #9FADA5;
+    --accent: #146C56;
+    --accent-soft: #E3EEE8;
+    --serif: Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header.top {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1.2em;
+    padding: 0.7em 1.4em 0.8em;
+    border-bottom: 1px solid var(--line-strong);
+    background: var(--panel);
+  }
+  header.top h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-style: italic;
+  }
+  header.top p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height: 1.4;
+    max-width: 70ch;
+  }
+  header.top p code {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+  .file-wrap { margin-left: auto; position: relative; align-self: center; }
+  #filesBtn {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.4em 1em;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  #filesBtn:hover { border-color: var(--accent); color: var(--accent); }
+  #filesBtn:focus-visible, .files-new:focus-visible,
+  .file-open:focus-visible, .file-del:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--accent);
+    outline: none;
+  }
+  #filesBtn.open { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .files-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    width: 300px;
+    max-width: 80vw;
+    background: var(--panel);
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    box-shadow: 0 6px 18px rgba(34, 48, 43, 0.14);
+    z-index: 20;
+  }
+  .files-new {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.55em 1em;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: none;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .files-new:hover { background: var(--accent); color: var(--panel); }
+  .files-panel ul { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
+  .files-panel li { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+  .files-panel li:last-child { border-bottom: none; }
+  .file-open {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5em 0.6em 0.5em 1em;
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-open:hover { background: var(--accent-soft); color: var(--accent); }
+  .file-open .file-date {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .files-panel li.current .file-open { color: var(--accent); font-weight: 600; }
+  .file-del {
+    flex: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 0.5em 0.9em;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .file-del:hover { color: #a03a2a; background: var(--accent-soft); }
+  main.workbench {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(300px, 2fr) 3fr;
+  }
+  .pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .editor-pane { border-right: 1px solid var(--line-strong); }
+  .right {
+    display: grid;
+    grid-template-rows: 11fr 9fr;
+    min-height: 0;
+    min-width: 0;
+  }
+  .right > .pane + .pane { border-top: 1px solid var(--line-strong); }
+  .pane-head {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1em;
+    padding: 0.35em 1.2em;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+  }
+  .pane-head .pane-note { font-size: 0.68rem; text-align: right; }
+  #editor {
+    flex: 1;
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 1em 1.2em 2em;
+    background: var(--panel);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    line-height: 1.65;
+    tab-size: 4;
+  }
+  #editor:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+  .rendered {
+    flex: 1;
+    overflow: auto;
+    padding: 1.1em 1.6em 2.5em;
+    background: var(--panel);
+  }
+  .rendered > :first-child { margin-top: 0; }
+  .rendered h1, .rendered h2, .rendered h3,
+  .rendered h4, .rendered h5, .rendered h6 {
+    font-family: var(--serif);
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.4em 0 0.4em;
+  }
+  .rendered h1 { font-size: 1.45rem; }
+  .rendered h2 { font-size: 1.15rem; }
+  .rendered h3 { font-size: 1rem; }
+  .rendered p, .rendered li { max-width: 66ch; line-height: 1.55; font-size: 0.95rem; }
+  .rendered code {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.1em 0.3em;
+    border-radius: 2px;
+  }
+  .rendered pre {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 0.7em 1em;
+    overflow: auto;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .rendered pre code { background: none; padding: 0; color: inherit; }
+  .rendered blockquote {
+    margin: 0.8em 0;
+    padding: 0.1em 1em;
+    border-left: 3px solid var(--line-strong);
+    color: var(--muted);
+  }
+  .rendered hr { border: none; border-top: 1px solid var(--line-strong); margin: 1.6em 0; }
+  .rendered table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.9em 0 1.5em;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+  .rendered th {
+    text-align: right;
+    font-weight: 600;
+    padding: 0.45em 0.9em;
+    border-bottom: 2px solid var(--ink);
+  }
+  .rendered th:first-child { text-align: left; }
+  .rendered td {
+    padding: 0.4em 0.9em;
+    border-top: 1px solid var(--line);
+    text-align: right;
+  }
+  .rendered td:first-child { text-align: left; }
+  .rendered tbody tr:first-child td { border-top: none; }
+  .rendered td.num { font-variant-numeric: tabular-nums; }
+  .rendered tfoot td {
+    border-top: 3px double var(--ink);
+    font-weight: 600;
+    padding-top: 0.5em;
+  }
+  .rendered tfoot tr:first-child td { border-top: 3px double var(--ink); }
+  .rendered td.computed {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .rendered td.blank { color: var(--line-strong); }
+  .ir {
+    flex: 1;
+    margin: 0;
+    overflow: auto;
+    padding: 1em 1.4em 2.5em;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.55;
+    background: var(--panel);
+    color: var(--ink);
+    white-space: pre;
+  }
+  .ir:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); outline: none; }
+  @media (max-width: 900px) {
+    body { overflow: auto; height: auto; min-height: 100%; }
+    main.workbench { grid-template-columns: 1fr; }
+    .editor-pane { border-right: none; border-bottom: 1px solid var(--line-strong); }
+    #editor { height: 40vh; }
+    .rendered, .ir { max-height: 60vh; }
+    .right { grid-template-rows: auto auto; }
+    header.top { flex-wrap: wrap; }
+  }
+</style>
+<meta name="ai-disclosure" content="ai-autonomous" ai-model="GLM-5.3-Flash" ai-provider="Thaura"><meta name="generator" content="Thaura (GLM-5.3-Flash)"></head>
+<body>
+<header class="top">
+  <h1>Tally</h1>
+  <p>Markdown tables that compute. End a table with a footer start like
+    <code>--|--|--</code> and formula rows like <code>--|=sum|=average</code>;
+    each formula runs over every number in its column. Grids work in pipes
+    or CSV. Functions: <code>=sum</code>, <code>=average</code>, <code>=min</code>, <code>=max</code>, <code>=product</code>.</p>
+  <div class="file-wrap">
+    <button id="filesBtn" type="button" aria-haspopup="true" aria-expanded="false"
+      aria-controls="filesPanel">Files</button>
+    <div id="filesPanel" class="files-panel" hidden>
+      <button id="newDoc" type="button" class="files-new">+ New document</button>
+      <ul id="filesList"></ul>
+    </div>
+  </div>
+</header>
+<main class="workbench">
+  <section class="pane editor-pane">
+    <div class="pane-head"><span>Markdown</span><span class="pane-note">pipe tables or CSV</span></div>
+    <textarea id="editor" spellcheck="false" aria-label="Markdown source"></textarea>
+  </section>
+  <section class="right">
+    <section class="pane">
+      <div class="pane-head"><span>Rendered</span><span class="pane-note" id="tableCount"></span></div>
+      <div id="view" class="rendered" aria-live="polite"></div>
+    </section>
+    <section class="pane">
+      <div class="pane-head"><span>Intermediate representation</span><span class="pane-note">values calculated</span></div>
+      <pre id="ir" class="ir" tabindex="0" aria-label="Intermediate representation as JSON"></pre>
+    </section>
+  </section>
+</main>
+<script>
+'use strict';
+
+/* ---------- numbers and functions ---------- */
+
+var FUNCS = {
+  sum: function (ns) { return ns.reduce(function (a, b) { return a + b; }, 0); },
+  average: function (ns) { return ns.length ? FUNCS.sum(ns) / ns.length : null; },
+  avg: function (ns) { return FUNCS.average(ns); },
+  min: function (ns) { return ns.length ? Math.min.apply(null, ns) : null; },
+  max: function (ns) { return ns.length ? Math.max.apply(null, ns) : null; },
+  product: function (ns) {
+    /* an empty product would be 1, but nothing to compute stays text */
+    return ns.length ? ns.reduce(function (a, b) { return a * b; }, 1) : null;
+  }
+};
+
+var FMT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 });
+
+function fmtResult(n) {
+  if (n === null || n === undefined || !isFinite(n)) return null;
+  return FMT.format(n);
+}
+
+/* Parse one cell as a number. allowCommas: thousands separators (pipe mode
+   only, since CSV uses the comma as its delimiter). */
+function parseNum(raw, allowCommas) {
+  var s = String(raw).trim();
+  if (!s) return null;
+  s = s.replace(/^[$\u20AC\u00A3]/, '').replace(/%$/, '');
+  if (allowCommas) s = s.replace(/(\d),(\d)/g, '$1$2');
+  if (!/^[+-]?(\d+(\.\d+)?|\.\d+)$/.test(s)) return null;
+  var n = Number(s);
+  return isFinite(n) ? n : null;
+}
+
+/* ---------- cell and line helpers ---------- */
+
+function isPipeLine(line) { return /^\s*\|/.test(line); }
+function hasComma(line) { return line.indexOf(',') !== -1; }
+function isDashCells(cells) {
+  return cells.length > 0 && cells.every(function (c) { return /^-+$/.test(c.trim()); });
+}
+function splitPipe(line) {
+  var s = line.trim();
+  s = s.replace(/^\|/, '').replace(/\|$/, '');
+  return s.split('|').map(function (c) { return c.trim(); });
+}
+function splitCsv(line) {
+  return line.split(',').map(function (c) { return c.trim(); });
+}
+function isFormula(raw) { return /^\s*=/.test(raw); }
+
+/* ---------- table parsing ---------- */
+
+/* rows: array of cell arrays (headings excluded). Returns grid rows and
+   formula rows split at the footer-start (all-dash) line. */
+function splitRows(rows) {
+  var start = 0;
+  /* A dash line directly after the headings is a standard markdown
+     separator row when another dash line follows it; otherwise it is
+     the footer start of a table with an empty grid. */
+  if (rows.length && isDashCells(rows[0])) {
+    var laterDash = false;
+    for (var s = 1; s < rows.length; s++) {
+      if (isDashCells(rows[s])) { laterDash = true; break; }
+    }
+    if (laterDash) start = 1;
+  }
+  var footerIdx = -1;
+  for (var k = start; k < rows.length; k++) {
+    if (isDashCells(rows[k])) { footerIdx = k; break; }
+  }
+  var grid = footerIdx === -1 ? rows.slice(start) : rows.slice(start, footerIdx);
+  var formulas = footerIdx === -1 ? [] : rows.slice(footerIdx + 1);
+  return { grid: grid, formulaRows: formulas };
+}
+
+function buildTable(delimiter, headings, grid, formulaRows) {
+  var nCols = headings.length;
+  /* a row may be wider than the headings (a grid formula can add a
+     column); widen rather than silently dropping cells */
+  grid.concat(formulaRows).forEach(function (row) {
+    if (row.length > nCols) nCols = row.length;
+  });
+  while (headings.length < nCols) headings.push('');
+  var allowCommas = delimiter === 'pipe';
+
+  function pad(row) {
+    var out = [];
+    for (var j = 0; j < nCols; j++) out.push(row[j] !== undefined ? row[j] : '');
+    return out;
+  }
+
+  var gridRows = grid.map(function (row) {
+    var padded = pad(row);
+    var cells = [];
+    for (var j = 0; j < nCols; j++) {
+      var raw = padded[j];
+      if (isFormula(raw)) {
+        /* grid formula: runs over the numbers to its left in this row,
+           stopping at the first non-numeric cell */
+        var name = raw.trim().slice(1).trim().toLowerCase();
+        var fn = FUNCS[name];
+        var run = [];
+        for (var k = j - 1; k >= 0; k--) {
+          var v = parseNum(padded[k], allowCommas);
+          if (v === null) break;
+          run.push(v);
+        }
+        /* an empty run means there was nothing to compute: keep the
+           formula as text rather than inventing a value */
+        var res = fn && run.length ? fn(run) : null;
+        var fcell = { raw: raw, func: name, result: res };
+        if (typeof res === 'number') fcell.num = res;
+        cells.push(fcell);
+      } else {
+        var num = parseNum(raw, allowCommas);
+        var cell = { raw: raw };
+        if (num !== null) cell.num = num;
+        cells.push(cell);
+      }
+    }
+    return cells;
+  });
+
+  function colNums(j) {
+    var ns = [];
+    gridRows.forEach(function (r) {
+      if (r[j] && typeof r[j].num === 'number') ns.push(r[j].num);
+    });
+    return ns;
+  }
+
+  /* A formula-row cell can carry a calculation inside its text:
+     "min price: =min" is the label "min price: " plus =min computed
+     over the column. The formula must sit at the end of the cell. */
+  var formulaOut = formulaRows.map(function (row) {
+    return pad(row).map(function (raw, j) {
+      if (isFormula(raw)) {
+        var name = raw.trim().slice(1).trim().toLowerCase();
+        var fn = FUNCS[name];
+        var res = fn ? fn(colNums(j)) : null;
+        return { raw: raw, func: name, result: res };
+      }
+      var embedded = raw.match(/^(.*)(=[A-Za-z]+)\s*$/);
+      if (embedded && embedded[1]) {
+        var ename = embedded[2].slice(1).toLowerCase();
+        var efn = FUNCS[ename];
+        if (efn) {
+          return { raw: raw, text: embedded[1], func: ename, result: efn(colNums(j)) };
+        }
+      }
+      return { raw: raw };
+    });
+  });
+
+  return {
+    type: 'table',
+    delimiter: delimiter,
+    headings: headings,
+    grid: gridRows,
+    formulaRows: formulaOut
+  };
+}
+
+function tryParsePipeTable(lines) {
+  var rows = lines.map(splitPipe);
+  if (!rows.length) return null;
+  var parts = splitRows(rows.slice(1)); /* rows after the heading line */
+  return buildTable('pipe', rows[0], parts.grid, parts.formulaRows);
+}
+
+function tryParseCsvTable(lines) {
+  /* A CSV table needs at least a heading, one more line, and an all-dash
+     footer line; anything else is ordinary text with commas in it. */
+  if (lines.length < 3) return null;
+  var rows = lines.map(splitCsv);
+  var footerIdx = -1;
+  for (var k = 1; k < rows.length; k++) {
+    if (isDashCells(rows[k])) { footerIdx = k; break; }
+  }
+  if (footerIdx === -1) return null;
+  var parts = splitRows(rows.slice(1));
+  return buildTable('csv', rows[0], parts.grid, parts.formulaRows);
+}
+
+/* ---------- document scanning ---------- */
+
+function scanDocument(src) {
+  var lines = src.replace(/\r\n?/g, '\n').split('\n');
+  var blocks = [];
+  var textBuf = [];
+
+  function flushText() {
+    if (!textBuf.length) return;
+    parseTextBlock(textBuf, blocks);
+    textBuf = [];
+  }
+
+  var i = 0;
+  while (i < lines.length) {
+    var line = lines[i];
+
+    if (!line.trim()) { flushText(); i++; continue; }
+
+    if (/^\s*```/.test(line)) {
+      flushText();
+      var codeLines = [];
+      i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) { codeLines.push(lines[i]); i++; }
+      i++; /* skip closing fence (or run off the end) */
+      blocks.push({ type: 'code', text: codeLines.join('\n') });
+      continue;
+    }
+
+    if (isPipeLine(line)) {
+      flushText();
+      var run = [line];
+      i++;
+      while (i < lines.length && isPipeLine(lines[i])) { run.push(lines[i]); i++; }
+      var t = tryParsePipeTable(run);
+      if (t) blocks.push(t); else textBuf.push(run.join('\n'));
+      continue;
+    }
+
+    if (hasComma(line)) {
+      var run2 = [line];
+      i++;
+      while (i < lines.length && hasComma(lines[i]) && !isPipeLine(lines[i])) { run2.push(lines[i]); i++; }
+      var t2 = tryParseCsvTable(run2);
+      if (t2) { flushText(); blocks.push(t2); }
+      else { textBuf.push(run2.join('\n')); }
+      continue;
+    }
+
+    textBuf.push(line);
+    i++;
+  }
+  flushText();
+  return { format: 'tally-document', blocks: blocks };
+}
+
+/* Parse accumulated plain-text lines into headings, lists, quotes, rules
+   and paragraphs. */
+function parseTextBlock(lines, blocks) {
+  var i = 0;
+  while (i < lines.length) {
+    var line = lines[i];
+
+    var h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { blocks.push({ type: 'heading', level: h[1].length, text: h[2].trim() }); i++; continue; }
+
+    if (/^\s*([-*_])\s*\1\s*\1[\s\1]*$/.test(line)) { blocks.push({ type: 'hr' }); i++; continue; }
+
+    if (/^\s*>/.test(line)) {
+      var q = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) {
+        q.push(lines[i].replace(/^\s*>\s?/, ''));
+        i++;
+      }
+      blocks.push({ type: 'quote', text: q.join(' ').trim() });
+      continue;
+    }
+
+    if (/^\s*[-*+]\s+/.test(line)) {
+      var items = [];
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*+]\s+/, ''));
+        i++;
+      }
+      blocks.push({ type: 'list', ordered: false, items: items });
+      continue;
+    }
+
+    if (/^\s*\d+\.\s+/.test(line)) {
+      var items2 = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items2.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
+        i++;
+      }
+      blocks.push({ type: 'list', ordered: true, items: items2 });
+      continue;
+    }
+
+    /* paragraph: gather until the next structural line */
+    var para = [line];
+    i++;
+    while (i < lines.length &&
+           !/^(#{1,6})\s/.test(lines[i]) &&
+           !/^\s*([-*_])\s*\1\s*\1[\s\1]*$/.test(lines[i]) &&
+           !/^\s*>/.test(lines[i]) &&
+           !/^\s*[-*+]\s+/.test(lines[i]) &&
+           !/^\s*\d+\.\s+/.test(lines[i])) {
+      para.push(lines[i]);
+      i++;
+    }
+    blocks.push({ type: 'paragraph', text: para.join('\n') });
+  }
+}
+
+/* ---------- rendering ---------- */
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function inline(s) {
+  var out = esc(s);
+  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return out;
+}
+
+function renderCellTd(cell) {
+  if (cell.func) {
+    /* grid formula: show the computed value, the raw text in the tooltip */
+    var shown = fmtResult(cell.result);
+    if (shown === null) shown = cell.raw;
+    return '<td class="num computed" title="' + esc(cell.raw) + '">' + esc(shown) + '</td>';
+  }
+  if (typeof cell.num === 'number') {
+    return '<td class="num">' + esc(cell.raw) + '</td>';
+  }
+  return '<td>' + inline(cell.raw) + '</td>';
+}
+
+function renderTable(t) {
+  var html = ['<table>'];
+  html.push('<thead><tr>');
+  t.headings.forEach(function (h) { html.push('<th>' + inline(h) + '</th>'); });
+  html.push('</tr></thead>');
+
+  html.push('<tbody>');
+  t.grid.forEach(function (row) {
+    html.push('<tr>');
+    row.forEach(function (cell) { html.push(renderCellTd(cell)); });
+    html.push('</tr>');
+  });
+  html.push('</tbody>');
+
+  if (t.formulaRows.length) {
+    html.push('<tfoot>');
+    t.formulaRows.forEach(function (row) {
+      html.push('<tr>');
+      row.forEach(function (cell) {
+        if (cell.func) {
+          var shown = fmtResult(cell.result);
+          if (cell.text !== undefined) {
+            if (shown === null) {
+              html.push('<td>' + inline(cell.raw) + '</td>');
+            } else {
+              html.push('<td title="' + esc(cell.raw) + '">' + inline(cell.text) +
+                '<span class="computed">' + esc(shown) + '</span></td>');
+            }
+          } else {
+            if (shown === null) shown = '\u2013';
+            html.push('<td class="computed" title="' + esc(cell.raw) + '">' + esc(shown) + '</td>');
+          }
+        } else if (/^-+$/.test(cell.raw.trim())) {
+          html.push('<td class="blank"></td>');
+        } else {
+          html.push('<td>' + inline(cell.raw) + '</td>');
+        }
+      });
+      html.push('</tr>');
+    });
+    html.push('</tfoot>');
+  }
+
+  html.push('</table>');
+  return html.join('');
+}
+
+function renderDocument(doc) {
+  var out = [];
+  doc.blocks.forEach(function (b) {
+    switch (b.type) {
+      case 'heading':
+        out.push('<h' + b.level + '>' + inline(b.text) + '</h' + b.level + '>');
+        break;
+      case 'paragraph':
+        out.push('<p>' + inline(b.text).replace(/\n/g, '<br>') + '</p>');
+        break;
+      case 'list':
+        var tag = b.ordered ? 'ol' : 'ul';
+        out.push('<' + tag + '>');
+        b.items.forEach(function (it) { out.push('<li>' + inline(it) + '</li>'); });
+        out.push('</' + tag + '>');
+        break;
+      case 'quote':
+        out.push('<blockquote><p>' + inline(b.text) + '</p></blockquote>');
+        break;
+      case 'code':
+        out.push('<pre><code>' + esc(b.text) + '</code></pre>');
+        break;
+      case 'hr':
+        out.push('<hr>');
+        break;
+      case 'table':
+        out.push(renderTable(b));
+        break;
+    }
+  });
+  return out.join('\n');
+}
+
+function countTables(doc) {
+  return doc.blocks.filter(function (b) { return b.type === 'table'; }).length;
+}
+
+/* Intermediate representation: the original document text, with formula
+   cells replaced by their computed values. */
+function joinRow(cells, delimiter) {
+  if (delimiter === 'pipe') {
+    return '|' + cells.join('|') + '|';
+  }
+  return cells.join(',');
+}
+
+function tableToText(t) {
+  var lines = [joinRow(t.headings, t.delimiter)];
+  t.grid.forEach(function (row) {
+    lines.push(joinRow(row.map(function (c) { return c.raw; }), t.delimiter));
+  });
+  lines.push(joinRow(t.headings.map(function () { return '--'; }), t.delimiter));
+  t.formulaRows.forEach(function (row) {
+    lines.push(joinRow(row.map(function (c) {
+      if (!c.func) return c.raw;
+      var shown = fmtResult(c.result);
+      if (c.text !== undefined && shown !== null) return c.text + shown;
+      return shown === null ? c.raw : shown;
+    }), t.delimiter));
+  });
+  return lines;
+}
+
+function documentToText(doc) {
+  var out = [];
+  doc.blocks.forEach(function (b) {
+    switch (b.type) {
+      case 'heading': out.push(new Array(b.level + 1).join('#') + ' ' + b.text); break;
+      case 'paragraph': out.push(b.text); break;
+      case 'list':
+        b.items.forEach(function (it, i) {
+          out.push(b.ordered ? (i + 1) + '. ' + it : '- ' + it);
+        });
+        break;
+      case 'quote': out.push('> ' + b.text); break;
+      case 'code': out.push('```\n' + b.text + '\n```'); break;
+      case 'hr': out.push('---'); break;
+      case 'table': out.push(tableToText(b).join('\n')); break;
+    }
+    out.push('');
+  });
+  while (out.length && out[out.length - 1] === '') out.pop();
+  return out.join('\n');
+}
+
+/* ---------- wiring ---------- */
+
+var SAMPLE = [
+  '# Market day',
+  '',
+  'A short list of what we bought, first as a pipe table.',
+  '',
+  '|item|qty|price|total|',
+  '|apples|12|0.6|=product|',
+  '|pears|7|0.9|=product|',
+  '|quinces|3|1.4|=product|',
+  '|--|--|--|--|',
+  '|--|total: =sum|--|avg price/unit: =average|',
+  '|--|--|min price: =min|',
+  '|--|--|max price: =max|',
+  '',
+  'The same table written as CSV.',
+  '',
+  'item,qty,price',
+  'apples,12,0.6',
+  'pears,7,0.9',
+  'quinces,3,1.4',
+  '--,--,--',
+  '--,=sum,=product',
+  '--,=min,=max',
+  '',
+  '## How it reads',
+  '',
+  'Headings first, then the number grid, then a footer start',
+  '`|--|--|--|`, then formula rows like `|--|=sum|=average|`.',
+  'Each footer formula works on every number in its column; a cell',
+  'that is not a number (like the item names) is simply skipped.',
+  'A calculation can also live inside the text of a formula row:',
+  '`min price: =min` computes =min over its column and prints the',
+  'label with the value, so label and number stay together.',
+  'A formula can also sit in the number grid itself: it works on',
+  'the numbers to its left in that row, stopping at the first',
+  'non-numeric cell, so each `=product` in the last column',
+  'multiplies the qty and price of its own row.'
+].join('\n');
+
+var editor = document.getElementById('editor');
+var view = document.getElementById('view');
+var ir = document.getElementById('ir');
+var tableCount = document.getElementById('tableCount');
+
+function update() {
+  var doc = scanDocument(editor.value);
+  view.innerHTML = renderDocument(doc);
+  ir.textContent = documentToText(doc);
+  var n = countTables(doc);
+  tableCount.textContent = n + (n === 1 ? ' table computed' : ' tables computed');
+}
+
+var debounceTimer = null;
+editor.addEventListener('input', function () {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(function () {
+    update();
+    persistCurrent();
+  }, 90);
+});
+
+/* ---------- document library ---------- */
+
+/* Documents live in localStorage under one JSON key; where storage is
+   unavailable (a sandboxed frame), the same calls fall back to memory
+   so the tool still works for the session. */
+
+var STORE_DOCS = 'tally.docs';
+var STORE_CURRENT = 'tally.current';
+var memStore = {};
+var storageOk = (function () {
+  try {
+    window.localStorage.setItem('tally.probe', '1');
+    window.localStorage.removeItem('tally.probe');
+    return true;
+  } catch (e) {
+    return false;
+  }
+})();
+
+function storeGet(key) {
+  if (storageOk) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      storageOk = false;
+    }
+  }
+  return Object.prototype.hasOwnProperty.call(memStore, key) ? memStore[key] : null;
+}
+function storeSet(key, value) {
+  if (storageOk) {
+    try {
+      window.localStorage.setItem(key, value);
+      return;
+    } catch (e) {
+      storageOk = false;
+    }
+  }
+  memStore[key] = value;
+}
+
+function loadDocs() {
+  var docs = null;
+  try {
+    docs = JSON.parse(storeGet(STORE_DOCS) || 'null');
+  } catch (e) {
+    docs = null;
+  }
+  if (!Array.isArray(docs)) docs = [];
+  return docs.filter(function (d) {
+    return d && typeof d.id === 'string' && typeof d.content === 'string';
+  });
+}
+function saveDocs() {
+  storeSet(STORE_DOCS, JSON.stringify(docs));
+}
+
+/* Documents have no names: the first non-empty line, with any heading
+   marks off, is what shows in the menu. */
+function docTitle(content) {
+  var lines = content.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (line) {
+      var shown = line.replace(/^#+\s*/, '');
+      if (shown.length > 42) shown = shown.slice(0, 42) + '\u2026';
+      return shown;
+    }
+  }
+  return '(untitled)';
+}
+function fmtDate(ms) {
+  var d = new Date(ms);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+    d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+var docs = loadDocs();
+var currentId = storeGet(STORE_CURRENT);
+var filesBtn = document.getElementById('filesBtn');
+var filesPanel = document.getElementById('filesPanel');
+var filesList = document.getElementById('filesList');
+
+function persistCurrent() {
+  if (!currentId) return;
+  for (var i = 0; i < docs.length; i++) {
+    if (docs[i].id === currentId) {
+      docs[i].content = editor.value;
+      docs[i].updated = Date.now();
+      saveDocs();
+      return;
+    }
+  }
+}
+
+function renderFiles() {
+  filesList.innerHTML = '';
+  docs.forEach(function (d) {
+    var li = document.createElement('li');
+    if (d.id === currentId) li.className = 'current';
+    var open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'file-open';
+    open.appendChild(document.createTextNode(docTitle(d.content)));
+    var date = document.createElement('span');
+    date.className = 'file-date';
+    date.textContent = fmtDate(d.updated);
+    open.appendChild(date);
+    open.addEventListener('click', function () {
+      closeFiles();
+      openDoc(d.id);
+    });
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'file-del';
+    del.title = 'Delete document';
+    del.setAttribute('aria-label', 'Delete document');
+    del.textContent = '\u00d7';
+    del.addEventListener('click', function () {
+      deleteDoc(d.id);
+    });
+    li.appendChild(open);
+    li.appendChild(del);
+    filesList.appendChild(li);
+  });
+}
+
+function openFiles() {
+  persistCurrent();
+  renderFiles();
+  filesPanel.hidden = false;
+  filesBtn.classList.add('open');
+  filesBtn.setAttribute('aria-expanded', 'true');
+}
+function closeFiles() {
+  filesPanel.hidden = true;
+  filesBtn.classList.remove('open');
+  filesBtn.setAttribute('aria-expanded', 'false');
+}
+filesBtn.addEventListener('click', function () {
+  if (filesPanel.hidden) openFiles(); else closeFiles();
+});
+document.addEventListener('click', function (e) {
+  if (!filesPanel.hidden && !filesPanel.contains(e.target) && !filesBtn.contains(e.target)) closeFiles();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && !filesPanel.hidden) closeFiles();
+});
+document.getElementById('newDoc').addEventListener('click', function () {
+  closeFiles();
+  newDoc();
+});
+
+function openDoc(id) {
+  currentId = id;
+  for (var i = 0; i < docs.length; i++) {
+    if (docs[i].id === id) editor.value = docs[i].content;
+  }
+  storeSet(STORE_CURRENT, id);
+  update();
+  renderFiles();
+}
+
+function newDoc() {
+  var d = {
+    id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7),
+    content: '',
+    updated: Date.now()
+  };
+  docs.unshift(d);
+  saveDocs();
+  openDoc(d.id);
+}
+
+function deleteDoc(id) {
+  docs = docs.filter(function (d) { return d.id !== id; });
+  if (currentId === id) {
+    if (docs.length) openDoc(docs[0].id); else newDoc();
+    return;
+  }
+  saveDocs();
+  renderFiles();
+}
+
+/* First run: seed the library with the sample document. */
+if (!docs.length) {
+  docs = [{ id: String(Date.now()), content: SAMPLE, updated: Date.now() }];
+  currentId = docs[0].id;
+  saveDocs();
+}
+var known = docs.some(function (d) { return d.id === currentId; });
+openDoc(known ? currentId : docs[0].id);
+</script>
+</body>
+</html>
