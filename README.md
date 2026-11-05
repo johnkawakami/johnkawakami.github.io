@@ -11,3 +11,6 @@ This is a way to convert a backup file from one app, into the backup file for th
 
 ## [JSON to PHP, Elm, Python, YAML, XML, Ruby](./format-translator.html)
 Converts between different object formats/dicts.
+
+## [Markdown Table Calculator](./markdown-table-calculator.html)
+A spreadsheet-like tool that performs calculations on markdown tables.
