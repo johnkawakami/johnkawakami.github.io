@@ -1031,7 +1031,8 @@ function deleteDoc(id) {
 }
 
 function addSampleDoc() {
-  var newSample = { id: String(Date.now()), content: (' ' + SAMPLE).slice(1), updated: Date.now() };
+  var sampleClone = (' ' + SAMPLE).slice(1);
+  var newSample = { id: String(Date.now()), content: sampleClone, updated: Date.now() };
   docs.push(newSample);
   currentId = newSample.id;
   saveDocs();
